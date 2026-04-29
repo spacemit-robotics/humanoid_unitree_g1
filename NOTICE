@@ -1,0 +1,19 @@
+SpacemiT humanoid_unitree_g1 Component
+Copyright 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
+
+This product includes software developed at
+SpacemiT (Hangzhou) Technology Co. Ltd. (https://www.spacemit.com/).
+
+---------------------------------------------------------------------------
+Third-party Software Notices:
+---------------------------------------------------------------------------
+
+This product contains portions of the following third-party software:
+
+1. unitree_rl_gym (https://github.com/unitreerobotics/unitree_rl_gym)
+   Copyright (c) 2016-2023 HangZhou YuShu TECHNOLOGY CO.,LTD. ("Unitree Robotics")
+   Licensed under the BSD 3-Clause License.
+
+2. RoboMimic_Deploy (https://github.com/ccrpRepo/RoboMimic_Deploy)
+   Copyright (c) ccrpRepo
+   No explicit license provided; used with attribution.
