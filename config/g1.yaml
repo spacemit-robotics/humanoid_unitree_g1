@@ -170,7 +170,11 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
         max_roll: 0.7
         max_pitch: 0.7
-  
+        # 切到 dance 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
+        prerequisite:
+          policy: stand
+          duration: 2.0
+
       kungfu:
         model_path: "policy/kungfu/kungfu_0609.onnx"
         action_joint_index: [0, 1, 2, 3, 4, 5,
@@ -214,6 +218,10 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
         max_roll: 0.7
         max_pitch: 0.7
+        # 切到 kungfu 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
+        prerequisite:
+          policy: stand
+          duration: 2.0
 
       stand:
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
