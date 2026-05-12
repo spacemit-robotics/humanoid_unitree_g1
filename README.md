@@ -10,7 +10,8 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 - FSM 完整仿真流程（driver + control + hmi 三进程）
 - sim2sim 跨机推理（PC 仿真 + K3 板卡 RL 推理）
 - PC 单机仿真（SHM 或 UDP 本机通信）
-- motion / dance / kungfu 三套预训练 RL 策略
+- motion / dance / kungfu / tracking 四套预训练 RL 策略
+  - tracking 为 BeyondMimic 风格 motion tracking（unitree_rl_mjlab 训练，纯 actor + 外挂 npz 参考动作）
 
 不支持：
 - 真实机器人部署（当前仅仿真）
