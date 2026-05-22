@@ -10,8 +10,13 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 - FSM 完整仿真流程（driver + control + hmi 三进程）
 - sim2sim 跨机推理（PC 仿真 + K3 板卡 RL 推理）
 - PC 单机仿真（SHM 或 UDP 本机通信）
-- motion / dance / kungfu / tracking 四套预训练 RL 策略
-  - tracking 为 BeyondMimic 风格 motion tracking（unitree_rl_mjlab 训练，纯 actor + 外挂 npz 参考动作）
+- motion / dance / kungfu / stand / tracking / tracking_packed 六套预训练 RL 策略
+  - stand 为独立站立策略，也作为 dance/kungfu 的前置策略
+  - tracking / tracking_packed 为 unitree_rl_mjlab motion tracking 策略：tracking 使用纯 actor + 外挂 npz，tracking_packed 使用包装版 ONNX（motion 内嵌，提取为 npz 后走同一路线）
+  - tracking_packed 的 npz 可通过 `download_models_g1.sh` 直接下载；自训新模型时用 `extract_packed_motion.py` 从包装版 ONNX 提取：
+    ```
+    python3 components/model_zoo/rl/scripts/extract_packed_motion.py <packed.onnx> -o <output.npz>
+    ```
 
 不支持：
 - 真实机器人部署（当前仅仿真）
