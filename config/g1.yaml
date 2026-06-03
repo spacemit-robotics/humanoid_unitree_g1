@@ -279,7 +279,8 @@ rl_policy:
         model_path: "policy/tracking/policy.onnx"
         motion_file: "policy/tracking/dance1_subject2.npz"
         motion_fps: 50                  # mjlab 训练默认 dt = 1/50
-        anchor_body_name: "torso_link"
+        anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
+        anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso 腰关节 [yaw, roll, pitch] 的关节索引
         anchor_yaw_align: true
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
@@ -338,7 +339,8 @@ rl_policy:
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
         motion_file: "policy/tracking_packed/motion.npz"
         motion_fps: 50
-        anchor_body_name: "torso_link"
+        anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
+        anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso 腰关节 [yaw, roll, pitch] 的关节索引
         anchor_yaw_align: true
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
