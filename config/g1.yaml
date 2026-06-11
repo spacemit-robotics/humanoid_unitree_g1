@@ -86,7 +86,7 @@ rl_policy:
   rl_dt: 0.02
   
   onnx_infer:
-    policy_names: [motion, dance, kungfu, stand, tracking, tracking_packed]  # 可用策略列表
+    policy_names: [motion, dance, kungfu, stand, tracking, tracking_packed, tracking_wbt_jumps1]  # 可用策略列表
     default_policy: "motion"  # 默认策略
 
     policies:
@@ -386,6 +386,74 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
         max_roll: 0.7
         max_pitch: 0.7
+
+      tracking_wbt_jumps1:
+        # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
+        # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
+        model_path: "policy/tracking_wbt_jumps1/policy.onnx"
+        motion_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
+        motion_fps: 50
+        anchor_body_index: 9             # torso_link 在 npz 30-body（IsaacSim BFS 遍历）中的全局索引
+        # ZERO 阶段 PD 目标：npz frame 0（URDF 顺序），近直立站姿 + 双臂侧平举，腰部无后仰
+        zero_target_pos: [-0.001, 0.004, 0.108, 0.185, -0.123, 0.000,
+                           0.001, -0.042, -0.225, 0.218, -0.196, -0.012,
+                           0.006, 0.000, -0.013,
+                          -0.042, 1.629, -0.198, 1.191, 0.349, 0.220, 0.039,
+                          -0.036, -1.641, 0.000, 1.302, -0.060, 0.075, -0.170]
+        anchor_waist_joint_indices: [12, 13, 14]
+        anchor_yaw_align: true
+        # IsaacSim action[i] → URDF joint[action_joint_index[i]]
+        action_joint_index: [0, 6, 12,
+                             1, 7, 13,
+                             2, 8, 14,
+                             3, 9, 15, 22,
+                             4, 10, 16, 23,
+                             5, 11, 17, 24,
+                             18, 25, 19, 26,
+                             20, 27, 21, 28]
+        # wbt onnx metadata action_scale（IsaacSim 顺序，与 action 索引对应）
+        action_scale: [0.548, 0.548, 0.548, 0.351, 0.351, 0.439,
+                       0.548, 0.548, 0.439, 0.351, 0.351, 0.439,
+                       0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
+                       0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
+                       0.439, 0.075, 0.075, 0.075, 0.075]
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        # wbt onnx metadata default_joint_pos（重排为 URDF 顺序）
+        rl_default_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                         -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          0.0,   0.0, 0.0,
+                          0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
+                          0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
+        # wbt onnx metadata joint_stiffness（重排为 URDF 顺序）
+        kp: [40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        # wbt onnx metadata joint_damping（重排为 URDF 顺序）
+        kd: [2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        custom_array_dims:
+          motion_command: 58
+          motion_anchor_pos_b: 3
+          motion_anchor_ori_b: 6
+        observation:
+          segment_0_terms: [motion_command, motion_anchor_pos_b, motion_anchor_ori_b,
+                            base_lin_vel, ang_vel, dof_pos, dof_vel, last_action]
+          strict_dim_check: true
+          ang_vel_scale: 1.0
+          dof_pos_scale: 1.0
+          dof_vel_scale: 1.0
+          dof_pos_subtract_default: true
+        command:
+          scale: [1.0, 1.0, 1.0]
+          init: [0.0, 0.0, 0.0]
+        max_roll: 2.0
+        max_pitch: 2.0
 
 # ============================================================
 # Transport 模块参数（通信相关）
