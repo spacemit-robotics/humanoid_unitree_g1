@@ -92,6 +92,13 @@ rl_policy:
     policies:
       motion:
         model_path: "policy/motion/motion.onnx"
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+            - {name: h_in, source: feedback, output: h_out}
+            - {name: c_in, source: feedback, output: c_out}
+          outputs:
+            - {name: action, target: action}
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11]
         action_scale: 0.25
@@ -129,6 +136,11 @@ rl_policy:
 
       dance:
         model_path: "policy/dance/dance_0605.onnx"
+        model_io:
+          inputs:
+            - {name: actor_obs, source: observation}
+          outputs:
+            - {name: action, target: action}
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
                              12, 13, 14,
@@ -177,6 +189,11 @@ rl_policy:
 
       kungfu:
         model_path: "policy/kungfu/kungfu_0609.onnx"
+        model_io:
+          inputs:
+            - {name: actor_obs, source: observation}
+          outputs:
+            - {name: action, target: action}
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
                              12, 13, 14,
@@ -227,6 +244,13 @@ rl_policy:
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
         # 控制 29 个关节，关节顺序为左右对称配对排列（见 action_joint_index）
         model_path: "policy/stand/stand_29dof.onnx"
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+            - {name: h_in, source: feedback, output: h_out}
+            - {name: c_in, source: feedback, output: c_out}
+          outputs:
+            - {name: action, target: action}
         # 关节配对顺序（来自 LocoMode joint2motor_idx）：
         # 左右髋俯仰/滚转/偏航，左右膝，左右踝俯仰/滚转，腰，左右肩俯仰/滚转，左右肘，左右腕
         action_joint_index: [0,  6,  12,
@@ -277,6 +301,11 @@ rl_policy:
       tracking:
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+          outputs:
+            - {name: actions, target: action}
         motion_file: "policy/tracking/dance1_subject2.npz"
         motion_fps: 50                  # mjlab 训练默认 dt = 1/50
         anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
@@ -337,6 +366,20 @@ rl_policy:
       tracking_packed:
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
+        # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
+        # 因此显式固定 time_step=0，并明确忽略未消费输出，禁止静默降级。
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+            - {name: time_step, source: constant, value: 0.0}
+          outputs:
+            - {name: actions, target: action}
+            - {name: joint_pos, target: ignore}
+            - {name: joint_vel, target: ignore}
+            - {name: body_pos_w, target: ignore}
+            - {name: body_quat_w, target: ignore}
+            - {name: body_lin_vel_w, target: ignore}
+            - {name: body_ang_vel_w, target: ignore}
         motion_file: "policy/tracking_packed/motion.npz"
         motion_fps: 50
         anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
@@ -391,6 +434,18 @@ rl_policy:
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+            - {name: time_step, source: constant, value: 0.0}
+          outputs:
+            - {name: actions, target: action}
+            - {name: joint_pos, target: ignore}
+            - {name: joint_vel, target: ignore}
+            - {name: body_pos_w, target: ignore}
+            - {name: body_quat_w, target: ignore}
+            - {name: body_lin_vel_w, target: ignore}
+            - {name: body_ang_vel_w, target: ignore}
         motion_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
         motion_fps: 50
         anchor_body_index: 9             # torso_link 在 npz 30-body（IsaacSim BFS 遍历）中的全局索引
@@ -459,7 +514,7 @@ rl_policy:
 # Transport 模块参数（通信相关）
 # ============================================================
 transport:
-  type: "shm"  # 通信类型：udp / shm
+  type: "udp"  # 通信类型：udp / shm
   
   udp:  # UDP 通信专属参数
     driver_ip: "10.0.90.6"
