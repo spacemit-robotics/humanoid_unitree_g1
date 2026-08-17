@@ -100,6 +100,9 @@ run_control_g1.sh   # 终端2（K3 板卡）
 run_hmi_g1.sh       # 终端3（K3 板卡）
 ```
 
+在 HMI 中按 `p` 进入策略选择页，通过方向键选择策略并按 Enter 确认。
+策略应在 POWER_OFF 或 DAMP 状态切换；随后依次进入 DAMP、ZERO 和 RL。
+
 通用 tracker 的运行数据流为：
 
 ```text

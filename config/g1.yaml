@@ -638,6 +638,24 @@ rl_policy:
         max_pitch: 2.0
 
 # ============================================================
+# HMI 参数（状态回传、心跳与键盘速度）
+# ============================================================
+hmi:
+  status_hz: 20.0
+  command_heartbeat_hz: 20.0
+  command_timeout: 0.5
+  status_timeout: 0.6
+  request_timeout: 15.0
+  key_highlight_ms: 180
+  velocity:
+    step_vx: 0.1
+    step_vy: 0.1
+    step_wz: 0.1
+    max_vx: 0.8
+    max_vy: 0.4
+    max_wz: 1.0
+
+# ============================================================
 # Transport 模块参数（通信相关）
 # ============================================================
 transport:
@@ -646,11 +664,13 @@ transport:
   udp:  # UDP 通信专属参数
     driver_ip: "10.0.90.6"
     control_ip: "10.0.91.0"
+    hmi_ip: "10.0.91.0"
     state_port: 8800    # driver → control 发送机器人状态数据
     control_port: 8801  # control → driver 发送控制命令
     hmi_port: 8802      # hmi → control 发送键盘命令
+    status_port: 8803   # control → hmi 回传真实 FSM/策略/速度
 
   shm:  # 共享内存通信专属参数（仅限单机多进程）
-    prefix: "g1"        # 共享内存名称前缀（通道：/hmrs_g1_state, /hmrs_g1_control, /hmrs_g1_hmi）
+    prefix: "g1"        # 通道：state / control / hmi / status
     capacity: 4         # 环形缓冲区槽位数
     slot_size: 4096     # 每个槽位大小（字节，需大于最大 packet）
