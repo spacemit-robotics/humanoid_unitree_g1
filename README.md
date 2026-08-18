@@ -10,10 +10,11 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 - FSM 完整仿真流程（driver + control + hmi 三进程）
 - sim2sim 跨机推理（PC 仿真 + K3 板卡 RL 推理）
 - PC 单机仿真（SHM 或 UDP 本机通信）
-- motion / dance / kungfu / stand / tracking / tracking_packed / tracking_wbt_jumps1 七套预训练 RL 策略
+- motion / dance / kungfu / stand / tracking / tracking_packed / tracking_wbt_jumps1 / protomotions 八套预训练 RL 策略
   - stand 为独立站立策略，也作为 dance/kungfu 的前置策略
   - tracking / tracking_packed 为 unitree_rl_mjlab motion tracking 策略：tracking 使用纯 actor + 外挂 npz，tracking_packed 使用包装版 ONNX（motion 内嵌，提取为 npz 后走同一路线）
   - tracking_wbt_jumps1 为 BeyondMimic (whole_body_tracking) 训练的 LAFAN1 jumps1 跳跃动作策略（244s），ZERO 阶段经 `zero_target_pos` 对齐动作起始姿态
+  - protomotions 为 G1 通用动作追踪策略，参考动作由 `humanoid_common` 的 `policy_adapter` 转换为对应模型输入
   - tracking_packed 的 npz 可通过 `download_models_g1.sh` 直接下载；自训新模型时用 `extract_packed_motion.py` 从包装版 ONNX 提取：
     ```
     python3 components/model_zoo/rl/scripts/extract_packed_motion.py <packed.onnx> -o <output.npz>
@@ -63,7 +64,9 @@ sudo apt install -y libonnx-dev libonnx-testdata libonnx1t64 \
 
 ### 构建编译
 
-本仓库为纯资产包（配置、资源、脚本），不含可独立编译的源码，需在 spacemit_robot SDK 内对本应用案例全量构建：
+本仓库只包含机型配置、资源和启动脚本。策略输入适配由
+`humanoid_common` 的 `behavior_manager/policy_adapter` 提供，需在
+spacemit_robot SDK 内构建：
 
 ```bash
 source build/envsetup.sh
@@ -77,6 +80,14 @@ m
 download_models_g1.sh
 ```
 
+`policy/` 不纳入 Git。ProtoMotions 至少需要以下运行资产；
+尚未发布到模型库时，可按相同目录结构手动放置：
+
+```text
+policy/protomotions/unified_pipeline.onnx
+policy/protomotions/output_walk_50hz.csv
+```
+
 ### 运行示例
 
 **FSM 完整仿真（三终端）**：
@@ -85,6 +96,16 @@ download_models_g1.sh
 run_driver_g1.sh    # 终端1（PC，x86_64）
 run_control_g1.sh   # 终端2（K3 板卡）
 run_hmi_g1.sh       # 终端3（K3 板卡）
+```
+
+在 HMI 中按 `p` 进入策略选择页，通过方向键选择策略并按 Enter 确认。
+策略应在 POWER_OFF 或 DAMP 状态切换；随后依次进入 DAMP、ZERO 和 RL。
+
+通用 tracker 的运行数据流为：
+
+```text
+参考动作 -> policy_adapter -> PolicyExecutor/ONNX Runtime
+        -> 29 维 PD 目标 -> MuJoCo
 ```
 
 **sim2sim（双终端）**：
@@ -102,7 +123,7 @@ run_sim2sim_g1.sh   # 终端2（K3 板卡）
 
 | 现象 | 处理 |
 | --- | --- |
-| `[PolicyConfigLoader] ONNX 模型文件不存在` | 运行 `download_models_g1.sh` 下载模型后重试 |
+| `[PolicyConfigLoader] ONNX 模型文件不存在` | 运行 `download_models_g1.sh`，或检查对应策略的 `policy/` 运行资产是否完整 |
 | 进程启动后通信无数据 | 检查 `config/g1.yaml` 中 `driver_ip` / `control_ip` 是否正确，确认两机可互相 ping 通 |
 | RL 控制不稳定 / 立即摔倒 | 检查 YAML 中 `action_joint_index` 和 `rl_default_pos` 与当前策略是否匹配 |
 
