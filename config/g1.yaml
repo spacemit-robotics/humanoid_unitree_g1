@@ -86,7 +86,8 @@ rl_policy:
   rl_dt: 0.02
   
   onnx_infer:
-    policy_names: [motion, dance, kungfu, stand, tracking, tracking_packed, tracking_wbt_jumps1]  # 可用策略列表
+    policy_names: [motion, dance, kungfu, stand, tracking, tracking_packed,
+                   tracking_wbt_jumps1, holomotion, protomotions]  # 可用策略列表
     default_policy: "motion"  # 默认策略
 
     policies:
@@ -510,6 +511,150 @@ rl_policy:
         max_roll: 2.0
         max_pitch: 2.0
 
+      holomotion:
+        # HoloMotion v1.3.2 G1：MoE Transformer，ONNX 关节顺序为左右交替。
+        model_path: "policy/holomotion/motion_tracking_model_v1.3.2.onnx"
+        model_io:
+          inputs:
+            - {name: obs, source: observation}
+            - {name: past_key_values, source: feedback, output: present_key_values}
+            - {name: step_idx, source: external}
+          outputs:
+            - {name: actions, target: action}
+            - {name: present_key_values, target: ignore}
+            - {name: moe_layer_0_expert_indices, target: ignore}
+            - {name: moe_layer_0_expert_logits, target: ignore}
+        # ONNX action[i] -> URDF joint[action_joint_index[i]]
+        action_joint_index: [0, 6, 12,
+                             1, 7, 13,
+                             2, 8, 14,
+                             3, 9, 15, 22,
+                             4, 10, 16, 23,
+                             5, 11, 17, 24,
+                             18, 25, 19, 26,
+                             20, 27, 21, 28]
+        action_scale: [0.548, 0.548, 0.548, 0.351, 0.351, 0.439,
+                       0.548, 0.548, 0.439, 0.351, 0.351, 0.439,
+                       0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
+                       0.439, 0.439, 0.439, 0.439, 0.439, 0.439,
+                       0.439, 0.075, 0.075, 0.075, 0.075]
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        rl_default_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                         -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          0.0,   0.0, 0.0,
+                          0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
+                          0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
+        zero_target_pos: [-0.119781, 0.045812, 0.051567, 0.283111, -0.137652, -0.030908,
+                          -0.078973, -0.066817, -0.237199, 0.264636, -0.167496, 0.033785,
+                           0.021512, 0.003775, -0.017551,
+                          -0.028931, 1.667765, -0.055076, 1.405656, 0.068494, 0.181915, 0.018075,
+                           0.048623, -1.620647, -0.084940, 1.499361, 0.098212, 0.173991, -0.290950]
+        kp: [40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        kd: [2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        custom_array_dims:
+          holomotion_obs: 604
+        observation:
+          segment_0_terms: [holomotion_obs]
+          strict_dim_check: true
+          dof_pos_subtract_default: true
+        policy_adapter:
+          type: holomotion
+          reference_file: "policy/holomotion/lafan1_walk1_subject1_50hz_formal_12s.csv"
+          motion_fps: 50
+          future_frames: 10
+          context_length: 32
+        max_roll: 2.0
+        max_pitch: 2.0
+
+      protomotions:
+        # ProtoMotions G1 unified pipeline：5.64M 参数 MLP，输出为绝对 PD 目标。
+        model_path: "policy/protomotions/unified_pipeline.onnx"
+        model_io:
+          inputs:
+            - {name: current_anchor_rot, source: external}
+            - {name: current_dof_pos, source: observation}
+            - {name: current_dof_vel, source: external}
+            - {name: current_root_local_ang_vel, source: external}
+            - {name: historical_processed_actions, source: feedback, output: joint_pos_targets}
+            - {name: mimic_future_anchor_rot, source: external}
+            - {name: mimic_future_dof_pos, source: external}
+            - {name: mimic_future_dof_vel, source: external}
+          outputs:
+            - {name: actions, target: ignore}
+            - {name: joint_pos_targets, target: action}
+            - {name: stiffness_targets, target: ignore}
+            - {name: damping_targets, target: ignore}
+        action_joint_index: [0, 1, 2, 3, 4, 5,
+                             6, 7, 8, 9, 10, 11,
+                             12, 13, 14,
+                             15, 16, 17, 18, 19, 20, 21,
+                             22, 23, 24, 25, 26, 27, 28]
+        action_scale: 1.0
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        # 绝对 PD 目标经 MapActionToTargetPos 原样透传。
+        rl_default_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        zero_target_pos: [-0.263916, 0.264949, 0.122429, 0.882127, -0.357202, 0.244802,
+                           0.022490, 0.177504, -0.084970, 0.322372, -0.356578, -0.160748,
+                          -0.003873, 0.098016, 0.316901,
+                          -0.172790, 0.424935, -0.757472, 1.125031, -0.190772, 0.122370, -0.131951,
+                          -0.194199, -0.393957, 0.786941, 1.156362, 0.097085, 0.117854, 0.083849]
+        kp: [40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        kd: [2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        observation:
+          segment_0_terms: [dof_pos]
+          strict_dim_check: true
+          dof_pos_scale: 1.0
+          dof_pos_subtract_default: false
+        policy_adapter:
+          type: protomotions
+          reference_file: "policy/protomotions/output_walk_50hz.csv"
+          motion_fps: 50
+          anchor_body_index: 16
+          anchor_waist_joint_indices: [12, 13, 14]
+          future_steps: [1, 2, 4, 8]
+        max_roll: 2.0
+        max_pitch: 2.0
+
+# ============================================================
+# HMI 参数（状态回传、心跳与键盘速度）
+# ============================================================
+hmi:
+  status_hz: 20.0
+  command_heartbeat_hz: 20.0
+  command_timeout: 0.5
+  status_timeout: 0.6
+  request_timeout: 15.0
+  key_highlight_ms: 180
+  velocity:
+    step_vx: 0.1
+    step_vy: 0.1
+    step_wz: 0.1
+    max_vx: 0.8
+    max_vy: 0.4
+    max_wz: 1.0
+
 # ============================================================
 # Transport 模块参数（通信相关）
 # ============================================================
@@ -519,11 +664,13 @@ transport:
   udp:  # UDP 通信专属参数
     driver_ip: "10.0.90.6"
     control_ip: "10.0.91.0"
+    hmi_ip: "10.0.91.0"
     state_port: 8800    # driver → control 发送机器人状态数据
     control_port: 8801  # control → driver 发送控制命令
     hmi_port: 8802      # hmi → control 发送键盘命令
+    status_port: 8803   # control → hmi 回传真实 FSM/策略/速度
 
   shm:  # 共享内存通信专属参数（仅限单机多进程）
-    prefix: "g1"        # 共享内存名称前缀（通道：/hmrs_g1_state, /hmrs_g1_control, /hmrs_g1_hmi）
+    prefix: "g1"        # 通道：state / control / hmi / status
     capacity: 4         # 环形缓冲区槽位数
     slot_size: 4096     # 每个槽位大小（字节，需大于最大 packet）
