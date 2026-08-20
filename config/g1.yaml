@@ -132,6 +132,11 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
+          # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
+          limits:
+            max_vx: 0.8
+            max_vy: 0.4
+            max_wz: 1.0
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -296,6 +301,11 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]  # LocoMode cmd_scale 全为 1.0
           init: [0.0, 0.0, 0.0]   # 默认站立不移动
+          # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
+          limits:
+            max_vx: 0.8
+            max_vy: 0.4
+            max_wz: 1.0
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -638,7 +648,7 @@ rl_policy:
         max_pitch: 2.0
 
 # ============================================================
-# HMI 参数（状态回传、心跳与键盘速度）
+# HMI 参数（状态回传、心跳与键盘速度步长）
 # ============================================================
 hmi:
   status_hz: 20.0
@@ -651,9 +661,6 @@ hmi:
     step_vx: 0.1
     step_vy: 0.1
     step_wz: 0.1
-    max_vx: 0.8
-    max_vy: 0.4
-    max_wz: 1.0
 
 # ============================================================
 # Transport 模块参数（通信相关）
