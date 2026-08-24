@@ -10,7 +10,9 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 - FSM 完整仿真流程（driver + control + hmi 三进程）
 - sim2sim 跨机推理（PC 仿真 + K3 板卡 RL 推理）
 - PC 单机仿真（SHM 或 UDP 本机通信）
-- motion / dance / kungfu / stand / tracking / tracking_packed / tracking_wbt_jumps1 / holomotion / protomotions 九套预训练 RL 策略
+- walk_mjlab / walk_rlgym / dance / kungfu / stand / tracking / tracking_packed / tracking_wbt_jumps1 / holomotion / protomotions 十套预训练 RL 策略
+  - walk_mjlab 基于 Unitree 官方 unitree_rl_mjlab G1 29DOF velocity 模型；包装 ONNX 在零速度时将 phase 置零，阈值由本机 YAML 配置
+  - walk_rlgym 为原 12DOF RL Gym 行走策略，模型文件继续沿用 archive 中已有的 `motion/motion.onnx` 路径
   - stand 为独立站立策略，也作为 dance/kungfu 的前置策略
   - tracking / tracking_packed 为 unitree_rl_mjlab motion tracking 策略：tracking 使用纯 actor + 外挂 npz，tracking_packed 使用包装版 ONNX（motion 内嵌，提取为 npz 后走同一路线）
   - tracking_wbt_jumps1 为 BeyondMimic (whole_body_tracking) 训练的 LAFAN1 jumps1 跳跃动作策略（244s），ZERO 阶段经 `zero_target_pos` 对齐动作起始姿态
@@ -80,15 +82,18 @@ m
 download_models_g1.sh
 ```
 
-`policy/` 不纳入 Git。HoloMotion 与 ProtoMotions 至少需要以下运行资产；
-尚未发布到模型库时，可按相同目录结构手动放置：
+`policy/` 不纳入 Git。运行资产统一按以下目录结构放置：
 
 ```text
 policy/holomotion/motion_tracking_model_v1.3.2.onnx
 policy/holomotion/lafan1_walk1_subject1_50hz_formal_12s.csv
+policy/walk_mjlab/policy.onnx
 policy/protomotions/unified_pipeline.onnx
 policy/protomotions/output_walk_50hz.csv
 ```
+
+`download_models_g1.sh` 只从 SpacemiT 模型库同步策略，不单独访问上游模型网站。
+`walk_mjlab` 对应 archive 中的 `walk_mjlab/policy.onnx`。
 
 ### 运行示例
 
