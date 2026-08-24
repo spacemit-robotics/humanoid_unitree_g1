@@ -87,7 +87,7 @@ rl_policy:
   
   onnx_infer:
     policy_names: [walk_mjlab, walk_rlgym, dance, kungfu, stand, tracking, tracking_packed,
-                   tracking_wbt_jumps1, protomotions]  # 可用策略列表
+                   tracking_wbt_jumps1, protomotions, sonic]  # 可用策略列表
     default_policy: "walk_mjlab"  # 默认使用零速度站立的 MjLab 行走策略
 
     policies:
@@ -645,6 +645,76 @@ rl_policy:
           anchor_body_index: 16
           anchor_waist_joint_indices: [12, 13, 14]
           future_steps: [1, 2, 4, 8]
+        max_roll: 2.0
+        max_pitch: 2.0
+
+      sonic:
+        # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
+        model_path: "policy/sonic/sonic_release_unified.onnx"
+        model_io:
+          inputs:
+            - {name: reference_obs, source: external}
+            - {name: proprio_history, source: observation}
+          outputs:
+            - {name: action, target: action}
+        # ONNX action[i]（IsaacLab 顺序）-> URDF joint[action_joint_index[i]]。
+        action_joint_index: [0, 6, 12,
+                             1, 7, 13,
+                             2, 8, 14,
+                             3, 9, 15, 22,
+                             4, 10, 16, 23,
+                             5, 11, 17, 24,
+                             18, 25, 19, 26,
+                             20, 27, 21, 28]
+        action_scale: [0.350661, 0.350661, 0.547546,
+                       0.350661, 0.350661, 0.438577,
+                       0.547546, 0.547546, 0.438577,
+                       0.350661, 0.350661, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.074501, 0.074501, 0.074501, 0.074501]
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        rl_default_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                         -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          0.0,   0.0, 0.0,
+                          0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
+                          0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
+        # 官方 dance 参考首帧，由 IsaacLab 顺序映射到 URDF 顺序。
+        zero_target_pos: [0.128441, -0.019236, 0.175869, 0.020642, -0.147584, 0.026962,
+                          0.102713, 0.020960, -0.137002, 0.050691, -0.111343, -0.016655,
+                          0.020116, -0.015831, 0.174060,
+                         -0.048029, 0.249355, -0.628862, 1.214126, -0.059122, 0.039018, 0.153431,
+                         -0.097087, -0.284472, 0.669457, 1.202778, 0.220654, 0.045179, -0.014889]
+        kp: [99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        kd: [6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        observation:
+          segment_0_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
+          segment_0_mode: flat_history
+          segment_0_length: 10
+          segment_0_order: oldest_first
+          segment_0_include_current: true
+          strict_dim_check: true
+          ang_vel_scale: 1.0
+          dof_pos_scale: 1.0
+          dof_vel_scale: 1.0
+          # SONIC 官方部署向 decoder 输入 q - default_angles。
+          dof_pos_subtract_default: true
+        policy_adapter:
+          type: sonic
+          reference_file: "policy/sonic/dance_in_da_party_001__A464"
+          motion_fps: 50
+          future_frames: 10
+          future_step: 5
         max_roll: 2.0
         max_pitch: 2.0
 
