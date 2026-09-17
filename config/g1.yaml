@@ -73,7 +73,8 @@ behavior_manager:
   
   # 回零时间（秒）
   zero_duration: 2.0
-  # ZERO 静态保持复用 HOME 增益；进入 RL 后使用各策略的训练增益。
+  # ZERO 复用 robot_base 默认 PD 增益；当前 HOME 未单独配置增益，
+  # 因此也使用同一组值。进入 RL 后使用各策略的训练增益。
   zero:
     kp: *g1_pose_kp
     kd: *g1_pose_kd
@@ -395,7 +396,8 @@ rl_policy:
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso: yaw/roll/pitch
           anchor_yaw_align: true
-        # NPZ frame 0，标准电机关节顺序；不改变训练使用的 rl_default_pos。
+        # 必须与 reference_file 中 joint_pos[0] 按标准电机关节顺序逐项一致；
+        # 更换 NPZ 时必须同步更新。只有参考首帧一致的策略才能复用此锚点。
         zero_target_pos: &tracking_zero_target
           [-0.190791, 0.179874, 0.319062, 0.446640, -0.278292, -0.041495,
            -0.200741, -0.210048, -0.320937, 0.416376, -0.300216, 0.093906,
@@ -479,7 +481,7 @@ rl_policy:
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]
           anchor_yaw_align: true
-        zero_target_pos: *tracking_zero_target  # 两份 NPZ 的首帧相同
+        zero_target_pos: *tracking_zero_target  # 两份 NPZ 的 joint_pos[0] 逐项一致
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
                              12, 13, 14,
