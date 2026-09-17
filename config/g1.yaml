@@ -26,12 +26,12 @@ robot_base:
       priority: 0
 
   # 默认 PD 增益（顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7）
-  kp: [100, 100, 100, 200, 20, 20,    # 左腿
+  kp: &g1_pose_kp [100, 100, 100, 200, 20, 20,    # 左腿
        100, 100, 100, 200, 20, 20,    # 右腿
        200, 200, 200,                 # 腰
        90, 60, 20, 60, 20, 20, 20,    # 左臂
        90, 60, 20, 60, 20, 20, 20]    # 右臂
-  kd: [2.5, 2.5, 2.5, 5.0, 0.2, 0.1, # 左腿
+  kd: &g1_pose_kd [2.5, 2.5, 2.5, 5.0, 0.2, 0.1, # 左腿
        2.5, 2.5, 2.5, 5.0, 0.2, 0.1, # 右腿
        5.0, 5.0, 5.0,                 # 腰
        2.0, 1.0, 0.4, 1.0, 0.4, 0.4, 0.4, # 左臂
@@ -54,6 +54,7 @@ simulation:
     # 初始化参数
     init_height: 0.85       # 初始高度（机器人从此高度落下）
     assist_height: 0.8     # 悬挂保护目标高度
+    assist_kd: 30.0        # G1 悬挂阻尼；避免 2 ms 仿真步长下的高频振荡
     
     # 仿真时间参数
     sim_dt: 0.002               # 仿真时间步长（秒）
@@ -72,6 +73,11 @@ behavior_manager:
   
   # 回零时间（秒）
   zero_duration: 2.0
+  # ZERO 复用 robot_base 默认 PD 增益；当前 HOME 未单独配置增益，
+  # 因此也使用同一组值。进入 RL 后使用各策略的训练增益。
+  zero:
+    kp: *g1_pose_kp
+    kd: *g1_pose_kd
   
   # 控制周期（秒）
   control_dt: 0.002
@@ -382,11 +388,22 @@ rl_policy:
             - {name: obs, source: observation}
           outputs:
             - {name: actions, target: action}
-        motion_file: "policy/tracking/dance1_subject2.npz"
-        motion_fps: 50                  # mjlab 训练默认 dt = 1/50
-        anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
-        anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso 腰关节 [yaw, roll, pitch] 的关节索引
-        anchor_yaw_align: true
+        policy_adapter:
+          type: mjlab
+          reference_file: "policy/tracking/dance1_subject2.npz"
+          motion_fps: 50
+          start_mode: manual  # RL 接管后保持首帧，HMI 主页面按 G 开始动作
+          anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
+          anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso: yaw/roll/pitch
+          anchor_yaw_align: true
+        # 必须与 reference_file 中 joint_pos[0] 按标准电机关节顺序逐项一致；
+        # 更换 NPZ 时必须同步更新。只有参考首帧一致的策略才能复用此锚点。
+        zero_target_pos: &tracking_zero_target
+          [-0.190791, 0.179874, 0.319062, 0.446640, -0.278292, -0.041495,
+           -0.200741, -0.210048, -0.320937, 0.416376, -0.300216, 0.093906,
+           -0.005507, -0.003180, 0.002137,
+           -0.171327, 1.710336, 0.134352, 1.171921, -0.009570, 0.010702, 0.370233,
+           -0.145459, -1.661460, -0.083894, 1.117313, -0.096474, -0.048090, -0.306177]
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
                              12, 13, 14,
@@ -456,11 +473,15 @@ rl_policy:
             - {name: body_quat_w, target: ignore}
             - {name: body_lin_vel_w, target: ignore}
             - {name: body_ang_vel_w, target: ignore}
-        motion_file: "policy/tracking_packed/motion.npz"
-        motion_fps: 50
-        anchor_body_index: 15            # torso_link 在 npz body 顺序中的索引（unitree_rl_mjlab g1.xml MJCF body 顺序）
-        anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso 腰关节 [yaw, roll, pitch] 的关节索引
-        anchor_yaw_align: true
+        policy_adapter:
+          type: mjlab
+          reference_file: "policy/tracking_packed/motion.npz"
+          motion_fps: 50
+          start_mode: manual
+          anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
+          anchor_waist_joint_indices: [12, 13, 14]
+          anchor_yaw_align: true
+        zero_target_pos: *tracking_zero_target  # 两份 NPZ 的 joint_pos[0] 逐项一致
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
                              12, 13, 14,
