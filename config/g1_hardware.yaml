@@ -1,0 +1,466 @@
+# G1 whole-body hardware configuration.
+# Configure device paths and verify calibration for the connected robot.
+# model is a descriptive label; protocol_scales defines the wire conversion.
+
+schema_version: 2
+whole_body:
+  cycle_s: 0.002
+  startup_feedback_timeout_s: 2.0
+  feedback_timeout_s: 0.01  # Beyond 10 ms, hold the last valid motor targets without disabling.
+  # Total recovery bound; per-transaction waits remain 5 ms.
+  communication_tolerance_s: 0.20
+  command_timeout_s: 0.20
+  refresh_last_command: true
+  require_motor_receive_timestamps: true
+  # Start in POWER_OFF. Actuation requires an explicit FSM command from the operator.
+  # Verify feedback before proceeding through DAMP, HOME, ZERO and RL.
+  startup_mode: disabled
+  allow_actuation: true
+
+  buses:
+    - {name: waist, type: uart, device: "/dev/g1/waist", bitrate: 6000000}
+    - {name: arm_right, type: uart, device: "/dev/g1/arm_right", bitrate: 6000000}
+    - {name: arm_left, type: uart, device: "/dev/g1/arm_left", bitrate: 6000000}
+    - {name: leg_left, type: uart, device: "/dev/g1/leg_left", bitrate: 6000000}
+    - {name: leg_right, type: uart, device: "/dev/g1/leg_right", bitrate: 6000000}
+
+  motors:
+    - name: motor_alias_1
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 0
+      feedback_id: 0
+      polarity: 1
+      zero_offset: 0
+      # Native PD runs in the actuator; do not substitute a host PD-estimate trip.
+      # Frame field overflow is still rejected by the UART codec.
+      command_limits: &g1_native_limits {estimated_torque_max: 0}
+      driver_options: &rs485_20_26_protocol_1
+        idle_poll: true
+        transaction_timeout_us: 5000  # Per-attempt wait; timeout alone no longer disables running motors.
+        # Integer wire counts per Nm, rad/s, rad, Nm/rad and Nm/(rad/s).
+        # Wire conversion factors are explicit and independent of the model label.
+        protocol_scales:
+          torque: 11.377777777777778
+          velocity: 916.73247220875
+          position: 117341.85555721786
+          kp: 2.528395061728395
+          kd: 2.528395061728395
+    - name: motor_alias_2
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 1
+      feedback_id: 1
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_1
+    - name: motor_alias_3
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 2
+      feedback_id: 2
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: &rs485_20_26_protocol_2
+        idle_poll: true
+        transaction_timeout_us: 5000
+        # Integer wire counts per Nm, rad/s, rad, Nm/rad and Nm/(rad/s).
+        # Wire conversion factors are explicit and independent of the model label.
+        protocol_scales:
+          torque: 17.87936507936508
+          velocity: 583.3752095873864
+          position: 74672.08990004772
+          kp: 6.2435878054925675
+          kd: 6.2435878054925675
+    - name: motor_alias_4
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 3
+      feedback_id: 3
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_1
+    - name: motor_alias_5
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 4
+      feedback_id: 4
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: &rs485_20_26_protocol_3
+        idle_poll: true
+        transaction_timeout_us: 5000
+        # Integer wire counts per Nm, rad/s, rad, Nm/rad and Nm/(rad/s).
+        # Wire conversion factors are explicit and independent of the model label.
+        protocol_scales:
+          torque: 16
+          velocity: 651.898646904
+          position: 83443.0972851327
+          kp: 5
+          kd: 5
+    - name: motor_alias_6
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 5
+      feedback_id: 5
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+
+    - name: motor_alias_7
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 0
+      feedback_id: 0
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_1
+    - name: motor_alias_8
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 1
+      feedback_id: 1
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_1
+    - name: motor_alias_9
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 2
+      feedback_id: 2
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_2
+    - name: motor_alias_10
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 3
+      feedback_id: 3
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_1
+    - name: motor_alias_11
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 4
+      feedback_id: 4
+      # Fold the right-ankle input mirror into motor normalization.
+      # This is not a change to the serial protocol or a raw encoder zero.
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_12
+      driver: drv_uart_rs485_20_26
+      bus: leg_right
+      model: "G1 actuator"
+      command_id: 5
+      feedback_id: 5
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+
+    - name: motor_alias_13
+      driver: drv_uart_rs485_20_26
+      bus: leg_left
+      model: "G1 actuator"
+      command_id: 6
+      feedback_id: 6
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_2
+    - name: motor_alias_14
+      driver: drv_uart_rs485_20_26
+      bus: waist
+      model: "G1 actuator"
+      command_id: 0
+      feedback_id: 0
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_15
+      driver: drv_uart_rs485_20_26
+      bus: waist
+      model: "G1 actuator"
+      command_id: 1
+      feedback_id: 1
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+
+    - name: motor_alias_16
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 0
+      feedback_id: 0
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_17
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 1
+      feedback_id: 1
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_18
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 2
+      feedback_id: 2
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_19
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 3
+      feedback_id: 3
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_20
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 4
+      feedback_id: 4
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_21
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 5
+      feedback_id: 5
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: &rs485_20_26_protocol_4
+        idle_poll: true
+        transaction_timeout_us: 5000
+        # Integer wire counts per Nm, rad/s, rad, Nm/rad and Nm/(rad/s).
+        # Wire conversion factors are explicit and independent of the model label.
+        protocol_scales:
+          torque: 160
+          velocity: 162.9747993850248
+          position: 83443.0972851327
+          kp: 50
+          kd: 200
+    - name: motor_alias_22
+      driver: drv_uart_rs485_20_26
+      bus: arm_left
+      model: "G1 actuator"
+      command_id: 6
+      feedback_id: 6
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_4
+
+    - name: motor_alias_23
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 0
+      feedback_id: 0
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_24
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 1
+      feedback_id: 1
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_25
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 2
+      feedback_id: 2
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_26
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 3
+      feedback_id: 3
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_27
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 4
+      feedback_id: 4
+      polarity: 1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_3
+    - name: motor_alias_28
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 5
+      feedback_id: 5
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_4
+    - name: motor_alias_29
+      driver: drv_uart_rs485_20_26
+      bus: arm_right
+      model: "G1 actuator"
+      command_id: 6
+      feedback_id: 6
+      polarity: -1
+      zero_offset: 0
+      command_limits: *g1_native_limits
+      driver_options: *rs485_20_26_protocol_4
+
+  # Canonical order matches g1.yaml and the MJCF actuator list.
+  joints:
+    - {name: left_hip_pitch_joint, mapping: direct, motors: [motor_alias_1], position_limit: [-2.5307, 2.8798], velocity_limit: 32, torque_limit: 88}
+    - {name: left_hip_roll_joint, mapping: direct, motors: [motor_alias_2], position_limit: [-0.5236, 2.9671], velocity_limit: 32, torque_limit: 88}
+    - {name: left_hip_yaw_joint, mapping: direct, motors: [motor_alias_3], position_limit: [-2.7576, 2.7576], velocity_limit: 32, torque_limit: 88}
+    - {name: left_knee_joint, mapping: direct, motors: [motor_alias_4], position_limit: [-0.087267, 2.8798], velocity_limit: 20, torque_limit: 139}
+    # Ankle/waist: projected joint proportional effort, motor-local damping.
+    # Mapped motor gains are clipped to KP 2000 and KD 25.
+    # MJCF reference ranges are not measured-position shutdown thresholds.
+    # Coupled feedback must lie in the finite, nonsingular calibration domain.
+    - {name: left_ankle_pitch_joint, mapping: table_2d, motors: [motor_alias_6, motor_alias_5], position_limit: [-0.87267, 0.5236], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: &g1_coupled_impedance {mode: motor_projected, motor_kp_max: 2000, motor_kd_max: 25}}
+    - {name: left_ankle_roll_joint, mapping: table_2d, motors: [motor_alias_6, motor_alias_5], position_limit: [-0.2618, 0.2618], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
+    - {name: right_hip_pitch_joint, mapping: direct, motors: [motor_alias_7], position_limit: [-2.5307, 2.8798], velocity_limit: 32, torque_limit: 88}
+    - {name: right_hip_roll_joint, mapping: direct, motors: [motor_alias_8], position_limit: [-2.9671, 0.5236], velocity_limit: 32, torque_limit: 88}
+    - {name: right_hip_yaw_joint, mapping: direct, motors: [motor_alias_9], position_limit: [-2.7576, 2.7576], velocity_limit: 32, torque_limit: 88}
+    - {name: right_knee_joint, mapping: direct, motors: [motor_alias_10], position_limit: [-0.087267, 2.8798], velocity_limit: 20, torque_limit: 139}
+    - {name: right_ankle_pitch_joint, mapping: table_2d, motors: [motor_alias_12, motor_alias_11], position_limit: [-0.87267, 0.5236], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
+    - {name: right_ankle_roll_joint, mapping: table_2d, motors: [motor_alias_12, motor_alias_11], position_limit: [-0.2618, 0.2618], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
+    - {name: waist_yaw_joint, mapping: direct, motors: [motor_alias_13], position_limit: [-2.618, 2.618], velocity_limit: 32, torque_limit: 88}
+    # Target = measured motor angle + mapped joint proportional effort / motor KP.
+    # Damping remains in the motor; no host cross-axis velocity residual.
+    - {name: waist_roll_joint, mapping: table_2d, motors: [motor_alias_14, motor_alias_15], position_limit: [-0.52, 0.52], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
+    - {name: waist_pitch_joint, mapping: table_2d, motors: [motor_alias_14, motor_alias_15], position_limit: [-0.52, 0.52], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
+    - {name: left_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_16], position_limit: [-3.0892, 2.6704], velocity_limit: 37, torque_limit: 25}
+    - {name: left_shoulder_roll_joint, mapping: direct, motors: [motor_alias_17], position_limit: [-0.523599, 2.2515], velocity_limit: 37, torque_limit: 25}
+    - {name: left_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_18], position_limit: [-2.618, 2.618], velocity_limit: 37, torque_limit: 25}
+    - {name: left_elbow_joint, mapping: direct, motors: [motor_alias_19], position_limit: [-1.0472, 2.0944], velocity_limit: 37, torque_limit: 25}
+    - {name: left_wrist_roll_joint, mapping: direct, motors: [motor_alias_20], position_limit: [-1.972222054, 1.972222054], velocity_limit: 37, torque_limit: 25}
+    - {name: left_wrist_pitch_joint, mapping: direct, motors: [motor_alias_21], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
+    - {name: left_wrist_yaw_joint, mapping: direct, motors: [motor_alias_22], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
+    - {name: right_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_23], position_limit: [-3.0892, 2.6704], velocity_limit: 37, torque_limit: 25}
+    - {name: right_shoulder_roll_joint, mapping: direct, motors: [motor_alias_24], position_limit: [-2.2515, 0.523599], velocity_limit: 37, torque_limit: 25}
+    - {name: right_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_25], position_limit: [-2.618, 2.618], velocity_limit: 37, torque_limit: 25}
+    - {name: right_elbow_joint, mapping: direct, motors: [motor_alias_26], position_limit: [-1.0472, 2.0944], velocity_limit: 37, torque_limit: 25}
+    - {name: right_wrist_roll_joint, mapping: direct, motors: [motor_alias_27], position_limit: [-1.972222054, 1.972222054], velocity_limit: 37, torque_limit: 25}
+    - {name: right_wrist_pitch_joint, mapping: direct, motors: [motor_alias_28], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
+    - {name: right_wrist_yaw_joint, mapping: direct, motors: [motor_alias_29], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
+
+  couplings:
+    - type: table_2d
+      joints: [left_ankle_pitch_joint, left_ankle_roll_joint]
+      # Ankle CSV inputs are [ID5, ID4], not [ID4, ID5].
+      motors: [motor_alias_6, motor_alias_5]
+      table_file: "../resources/kinematics/g1_ankle.csv"
+      table_direction: motor_to_joint
+      table_interpolation: delaunay
+      # Left ankle: [pitch, roll] = F(raw_ID5, raw_ID4).
+      table_output_scale: [1.0, 1.0]
+      # Grid envelopes, not independently calibrated mechanical travel limits.
+      motor_limit: 1.7
+      motor_difference_limit: 3.4
+      ankle_limit: 0.8727
+      max_iterations: 60
+      squared_tolerance: 1.0e-12
+    - type: table_2d
+      joints: [right_ankle_pitch_joint, right_ankle_roll_joint]
+      motors: [motor_alias_12, motor_alias_11]
+      table_file: "../resources/kinematics/g1_ankle.csv"
+      table_direction: motor_to_joint
+      table_interpolation: delaunay
+      # Right ankle: diag(1,-1) * F(-raw_ID5, -raw_ID4).
+      # The two minus signs on the inputs are motor polarity above.
+      table_output_scale: [1.0, -1.0]
+      # Grid envelopes, not independently calibrated mechanical travel limits.
+      motor_limit: 1.7
+      motor_difference_limit: 3.4
+      ankle_limit: 0.8727
+      max_iterations: 60
+      squared_tolerance: 1.0e-12
+
+    - type: table_2d
+      # Waist CSV: [ID0, ID1, pitch, roll], all in radians.
+      # Output order differs from the canonical joint list; do not swap motors.
+      # See resources/kinematics/README.md for table and command conventions.
+      joints: [waist_pitch_joint, waist_roll_joint]
+      motors: [motor_alias_14, motor_alias_15]
+      table_file: "../resources/kinematics/g1_waist.csv"
+      table_direction: motor_to_joint
+      table_interpolation: delaunay
+      table_output_scale: [1.0, 1.0]
+      # CSV envelopes only; joint command limits above remain +/-0.52 rad.
+      motor_limit: 1.31
+      motor_difference_limit: 2.62
+      ankle_limit: 1.0  # Generic table output bound, including a waist coupling.
+      max_iterations: 60
+      squared_tolerance: 1.0e-12
+
+  imu:
+    driver: drv_uart_hi91
+    device: "/dev/g1/imu"
+    baud: 921600
+    # Pelvis-front rigid mount; sensor X up, Y left, Z back.
+    # Sensor axes: X up, Y left, Z backward; body axes: X forward, Y left, Z up.
+    mounting_matrix: [0.0, 0.0, -1.0,
+                      0.0, 1.0,  0.0,
+                      1.0, 0.0,  0.0]
+    acceleration_bias: [0.0, 0.0, 0.0]
+    gyro_bias: [0.0, 0.0, 0.0]
+    # Rigidly attached to the pelvis; no waist orientation or angular-rate subtraction.
+    base_joint_chain: []
