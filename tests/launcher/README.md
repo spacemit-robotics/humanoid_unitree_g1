@@ -4,7 +4,7 @@
 实机默认不打开 TUI，可用独立终端连接；仿真默认打开 TUI。
 正常退出和异常核心进程退出分别处理，可选音频/手柄进程退出不关闭核心进程。
 
-`install_g1_service.py --help` 列出安装参数。`--dry-run` 打印服务配置而不修改系统。
+`install_g1_service.py --help` 列出安装参数。`--print-unit` 打印服务配置而不修改系统。
 安装完成后可以使用 `systemctl status g1.service` 和
 `journalctl -u g1.service -n 50 --no-pager` 查看服务状态。
 服务启动后保持 POWER_OFF；异常重启不会自动恢复 RL。

@@ -1,5 +1,22 @@
 # G1 手机遥控
 
+默认只监听 `127.0.0.1`。手机与机器人处于同一局域网时，在 SDK 根目录启动：
+
+```bash
+source build/envsetup.sh
+run_g1.sh --real --listen ROBOT_LAN_IP --public-url http://ROBOT_LAN_IP:8766
+```
+
+将两处 `ROBOT_LAN_IP` 替换为机器人实际局域网地址。扫码访问启动时输出的配对入口，
+接管控制权后再操作；不要把这个服务映射到公网。
+若使用开机服务，安装时也传入同样的 `--listen` 和 `--public-url`，例如：
+
+```bash
+sudo python3 output/staging/bin/install_g1_service.py --sdk-root "$PWD" --user "$USER" --listen ROBOT_LAN_IP --public-url http://ROBOT_LAN_IP:8766
+```
+
+安装器只启用下次开机自启动，不立即启动硬件；服务已运行时不要另开一套启动进程。
+
 Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并进入 RL 后，
 按住前后、横移或转向键发送速度，支持双指同时操作。默认慢速，快慢档自动填入
 速度预设，也可手动调整；正常停车松开按键即可。页面没有独立的“停止移动”按钮，

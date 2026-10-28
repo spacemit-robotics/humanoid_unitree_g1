@@ -17,8 +17,17 @@ RL 构建需开启 `USE_MNN_BACKEND`；MNN 依赖由 RL 的 CMake 自动获取�
 已有 SDK 可通过 `MNN_ROOT` 指定。
 MNN 是推理格式，不决定状态机或关节控制方式。
 
-从 SDK 根目录初始化环境，再进入相应包执行 `mm`；完整构建使用
-`k3-com260-kit-humanoid-unitree-g1` target。缺少运行资源时先补齐资源，
+完整构建在 SDK 根目录执行：
+
+```bash
+source build/envsetup.sh
+lunch k3-com260-kit-humanoid-unitree-g1
+m
+```
+
+该 target 通过 `cmake_options` 自动开启 RL 的 MNN 后端，需要配套的 build 仓库版本。
+单包构建时，在 `components/model_zoo/rl` 中执行 `mm -DUSE_MNN_BACKEND=ON`，
+其他包按依赖顺序执行 `mm`。缺少运行资源时先补齐资源，
 不要用其他模型替代而沿用当前观测、增益和动作尺度。
 
 ## 启动
@@ -66,6 +75,13 @@ HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态；等待当�
 五路分别为腰部、左右臂、左右腿。设备路径默认以 `/dev/g1/` 下的角色名表示；
 部署前必须改为实际、稳定的设备路径，或由安装环境创建相应 udev 链接。
 不要依据 `/dev/ttyUSB*` 的出现顺序分配肢体。
+
+先运行 `ls -l /dev/serial/by-id/`，按转换器序列号与接口号确认五路总线及 IMU，
+将 `g1_hardware.yaml` 中各 `device` 替换为对应的完整 by-id 路径。
+同一多口转换器的不同接口也必须分别核对，不能按路径列表顺序分配左右腿。
+修改接线或更换转换器后，在 POWER_OFF 下重新检查反馈归属。
+可选的自定义 udev 规则应匹配实际序列号及接口号，再创建 `/dev/g1/` 角色链接；
+设备标识和本机规则由部署环境保存，不作为通用机型配置分发。
 
 普通关节发送位置、速度、前馈力矩和 KP/KD，由电机执行 PD。
 左右踝 pitch/roll 和腰 pitch/roll 使用 `table_2d` 标定映射、
