@@ -7,7 +7,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 PACKAGE = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("g1_realtime", PACKAGE / "scripts/configure_g1_realtime.py")
@@ -46,6 +46,37 @@ class RealtimeProfileTest(unittest.TestCase):
 
     def test_cpu_list(self):
         self.assertEqual(PROFILE.parse_cpus("0,3-6\n"), PROFILE.HOUSEKEEPING)
+
+    def test_pending_inactive_irq_does_not_abort_startup(self):
+        with tempfile.TemporaryDirectory(prefix="g1_irq_test_") as directory:
+            root = Path(directory)
+            irq = root / "46"
+            irq.mkdir()
+            (irq / "effective_affinity_list").write_text("1\n", encoding="ascii")
+            with patch.object(PROFILE.time, "sleep"), patch("builtins.print") as output:
+                PROFILE.apply_irqs({46: (3, "bwctrl")}, root)
+            self.assertEqual((irq / "smp_affinity_list").read_text(), "3\n")
+            self.assertIn("migration pending", output.call_args[0][0])
+
+    def test_usb_migration_must_complete(self):
+        with tempfile.TemporaryDirectory(prefix="g1_irq_test_") as directory:
+            root = Path(directory)
+            irq = root / "81"
+            irq.mkdir()
+            effective = irq / "effective_affinity_list"
+            effective.write_text("1\n", encoding="ascii")
+            with patch.object(PROFILE.time, "sleep"), self.assertRaises(ValueError):
+                PROFILE.apply_irqs({81: (6, "xhci-hcd:usb1")}, root)
+            # A deferred change that completes during the bounded wait passes.
+            with patch.object(PROFILE.time, "sleep", side_effect=lambda _: effective.write_text("6\n")):
+                PROFILE.apply_irqs({81: (6, "xhci-hcd:usb1")}, root)
+
+    def test_rejected_affinity_is_not_reported_as_pending(self):
+        with tempfile.TemporaryDirectory(prefix="g1_irq_test_") as directory:
+            root = Path(directory)
+            (root / "46").mkdir()
+            with patch.object(Path, "read_text", return_value="1\n"), self.assertRaises(ValueError):
+                PROFILE.apply_irqs({46: (3, "bwctrl")}, root)
 
     def test_preempt_full_is_written_and_read_back(self):
         path = Mock()

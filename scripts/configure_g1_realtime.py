@@ -11,6 +11,7 @@ import argparse
 import os
 from pathlib import Path
 import re
+import time
 
 HOUSEKEEPING = {0, 3, 4, 5, 6}
 CONTROL_CPUS = {1, 2, 7}
@@ -94,11 +95,11 @@ def irq_plan(text, usb):
     return result
 
 
-def apply_irqs(plan):
+def apply_irqs(plan, root=Path("/proc/irq")):
     """Apply affinities; GPIO child IRQs may be fixed, their parent is movable."""
-    Path("/proc/irq/default_smp_affinity").write_text(f"{sum(1 << cpu for cpu in HOUSEKEEPING):x}\n")
+    (root / "default_smp_affinity").write_text(f"{sum(1 << cpu for cpu in HOUSEKEEPING):x}\n")
     for irq, (cpu, name) in plan.items():
-        directory = Path(f"/proc/irq/{irq}")
+        directory = root / str(irq)
         try:
             (directory / "smp_affinity_list").write_text(f"{cpu}\n")
         except OSError as error:
@@ -106,9 +107,25 @@ def apply_irqs(plan):
                 raise
             print(f"IRQ {irq} {name}: fixed/unsupported affinity ({error.strerror})")
             continue
-        effective = (directory / "effective_affinity_list").read_text().strip()
-        if parse_cpus(effective) & CONTROL_CPUS:
-            raise ValueError(f"IRQ {irq} {name} still targets control CPUs: {effective}")
+        requested = (directory / "smp_affinity_list").read_text().strip()
+        if parse_cpus(requested) != {cpu}:
+            raise ValueError(f"IRQ {irq} {name} rejected target CPU {cpu}: {requested}")
+        for attempt in range(6):
+            effective = (directory / "effective_affinity_list").read_text().strip()
+            if parse_cpus(effective) == {cpu}:
+                break
+            if attempt < 5:
+                time.sleep(0.02)
+        else:
+            # Inactive peripheral IRQs may apply the accepted affinity only on
+            # their next interrupt. Do not abort the entire robot startup for
+            # that pending migration. Motor/IMU USB must be verified now.
+            message = (f"IRQ {irq} {name}: requested CPU {cpu}, "
+                       f"effective CPU {effective or 'none'}; migration pending")
+            if name.startswith("xhci-hcd:"):
+                raise ValueError(message)
+            print(f"WARNING: {message}")
+            continue
         print(f"IRQ {irq} {name}: effective CPU {effective}")
 
 
