@@ -13,7 +13,7 @@
 - `resources/arm_interactions/`、`resources/audio/`：交互动作和可选音频的配置说明。
 
 依赖 `humanoid_common`、`whole_body`、`motor`、`imu`、`rl` 和 `mujoco`。
-RL 构建需开启 `USE_MNN_BACKEND`；MNN 依赖由 RL 的 CMake 自动获取并缓存，
+RL 默认构建包含 MNN 后端；MNN 依赖由 RL 的 CMake 自动获取并缓存，
 已有 SDK 可通过 `MNN_ROOT` 指定。
 MNN 是推理格式，不决定状态机或关节控制方式。
 
@@ -25,9 +25,7 @@ lunch k3-com260-kit-humanoid-unitree-g1
 m
 ```
 
-该 target 通过 `cmake_options` 自动开启 RL 的 MNN 后端，需要配套的 build 仓库版本。
-单包构建时，在 `components/model_zoo/rl` 中执行 `mm -DUSE_MNN_BACKEND=ON`，
-其他包按依赖顺序执行 `mm`。缺少运行资源时先补齐资源，
+单包构建时，按依赖顺序进入对应包执行 `mm`。缺少运行资源时先补齐资源，
 不要用其他模型替代而沿用当前观测、增益和动作尺度。
 
 ## 启动
