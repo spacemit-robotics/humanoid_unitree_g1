@@ -441,6 +441,7 @@ whole_body:
       joints: [waist_pitch_joint, waist_roll_joint]
       motors: [motor_alias_14, motor_alias_15]
       table_file: "../resources/kinematics/g1_waist.csv"
+      table_triangles_file: "../resources/kinematics/g1_waist_triangles.csv"
       table_direction: motor_to_joint
       table_interpolation: delaunay
       table_output_scale: [1.0, 1.0]

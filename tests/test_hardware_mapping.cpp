@@ -19,7 +19,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "whole_body_core.h"
+#include "core/whole_body_core.h"
 
 namespace {
 
@@ -116,6 +116,7 @@ void CheckMapping(const whole_body::CoupledMapping &mapping) {
     // independently in test_coupling_commands, not against these old interpolants.
     auto legacy_config = mapping.Config();
     legacy_config.table_interpolation = "bilinear";
+    legacy_config.table_triangles_file.clear();
     whole_body::CoupledMapping legacy(legacy_config);
     const std::array<std::array<double, 4>, 3> recorded = {{
         {0.009453324247191012, -0.0682163710786517, -0.0319509631035121, -0.03724311709379077},
@@ -384,7 +385,10 @@ void CheckMockCommand(const whole_body::RuntimeConfig &config,
 void CheckAnkleCore(const whole_body::RuntimeConfig &config) {
     auto mock_config = config;
     // Archived four-corner/software-PD regression, not the projected motor mode.
-    for (auto &coupling : mock_config.couplings) coupling.table_interpolation = "bilinear";
+    for (auto &coupling : mock_config.couplings) {
+        coupling.table_interpolation = "bilinear";
+        coupling.table_triangles_file.clear();
+    }
     for (size_t i : {4U, 5U, 10U, 11U}) {
         mock_config.joints[i].impedance.mode = whole_body::ImpedanceMode::kSoftware;
         mock_config.joints[i].impedance.rl_mode.reset();

@@ -16,8 +16,9 @@
 #include <string>
 #include <vector>
 
-#include "whole_body_core.h"
-#include "../thirdparty/delaunator.hpp"
+#include <delaunator-cpp.hpp>
+
+#include "core/whole_body_core.h"
 
 namespace {
 
@@ -51,8 +52,28 @@ class ReferenceSurface {
             row[3] *= config.table_output_scale[1];
             rows_.push_back(row);
         }
-        const delaunator::Delaunator<double> triangulation(coordinates);
-        triangles_ = triangulation.triangles;
+        if (config.table_triangles_file.empty()) {
+            const delaunator::Delaunator<double> triangulation(coordinates);
+            triangles_ = triangulation.triangles;
+        } else {
+            // Original ordered indices are an input asset, not recomputed by
+            // this independent reference. Plane/PD arithmetic stays separate.
+            std::ifstream mesh(config.table_triangles_file);
+            std::string format;
+            size_t rows = 0, count = 0;
+            Require(static_cast<bool>(mesh >> format >> rows >> count) &&
+                format == "ordered_triangles_v1" && rows == rows_.size(), "read ordered mesh");
+            for (size_t i = 0; i < count; ++i) {
+                std::array<size_t, 3> triangle{};
+                char comma1 = 0, comma2 = 0;
+                Require(static_cast<bool>(mesh >> triangle[0] >> comma1 >> triangle[1] >>
+                    comma2 >> triangle[2]) && comma1 == ',' && comma2 == ',', "read triangle");
+                for (auto vertex : triangle) {
+                    Require(vertex < rows_.size(), "triangle vertex range");
+                    triangles_.push_back(vertex);
+                }
+            }
+        }
     }
 
     Plane At(const std::array<double, 2> &motor) const {

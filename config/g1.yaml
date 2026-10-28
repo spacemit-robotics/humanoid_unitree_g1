@@ -277,6 +277,18 @@ behavior_manager:
     move_duration: 3.0
     kp: *g1_pose_kp
     kd: *g1_pose_kd
+    # Same reference envelope as RL and g1_hardware.yaml. Hanging
+    # feedback may exceed it; HOME ramps gains from the nearest valid target.
+    target_position_lower: &joint_lower [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
+                            -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
+                            -2.618, -0.52, -0.52,
+                            -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
+                            -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
+    target_position_upper: &joint_upper [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
+                            2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
+                            2.618, 0.52, 0.52,
+                            2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
+                            2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
   zero:
     move_duration: 2.0
     kp: *g1_pose_kp
@@ -344,16 +356,8 @@ rl_policy:
         # motion SHA256 2614b82f279cd45d40db4a87c9c64ca61027160017b81fd24cbd42427284cc18
         backend: mnn
         model_path: "policy/locomotion/stance.mnn"
-        target_position_lower: &joint_lower [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
-                                -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
-                                -2.618, -0.52, -0.52,
-                                -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
-                                -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
-        target_position_upper: &joint_upper [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
-                                2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
-                                2.618, 0.52, 0.52,
-                                2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
-                                2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
         target_limit_margin: 0.0
         entry_target_transition_duration: 0.0
         runtime: {provider: cpu, threads: 1, warmup_runs: 2}

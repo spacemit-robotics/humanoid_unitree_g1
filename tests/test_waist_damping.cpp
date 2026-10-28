@@ -18,7 +18,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "whole_body_core.h"
+#include "core/whole_body_core.h"
 extern "C" {
 #include "rs485_20_26_protocol.h"
 }
@@ -86,7 +86,10 @@ void Replay(whole_body::RuntimeConfig config, const whole_body_joint_command &co
     const std::vector<Sample> &samples, bool legacy, bool guarded) {
     if (legacy) {
         for (size_t i : {13U, 14U}) config.joints[i].impedance.mode = whole_body::ImpedanceMode::kSoftware;
-        for (auto &coupling : config.couplings) coupling.table_interpolation = "bilinear";
+        for (auto &coupling : config.couplings) {
+            coupling.table_interpolation = "bilinear";
+            coupling.table_triangles_file.clear();
+        }
     }
     if (guarded) {
         // Exercise the old commissioning guard only in this regression fixture.

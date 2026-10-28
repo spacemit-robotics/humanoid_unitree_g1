@@ -9,6 +9,8 @@ if(NOT WHOLE_BODY_LIBRARY)
     message(FATAL_ERROR "Build whole_body with mm in this SDK first")
 endif()
 find_package(yaml-cpp REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "${SDK_ROOT}/components/control/whole_body/cmake")
+find_package(Delaunator REQUIRED)
 add_executable(test_g1_hardware_mapping test_hardware_mapping.cpp)
 target_compile_features(test_g1_hardware_mapping PRIVATE cxx_std_17)
 target_compile_options(test_g1_hardware_mapping PRIVATE -Wall -Wextra -Werror)
@@ -27,7 +29,7 @@ target_include_directories(test_g1_coupling_commands PRIVATE
     "${SDK_ROOT}/components/control/whole_body/src"
     "${SDK_ROOT}/components/control/whole_body/include"
     "${STAGING}/include")
-target_link_libraries(test_g1_coupling_commands PRIVATE ${WHOLE_BODY_LIBRARY} yaml-cpp)
+target_link_libraries(test_g1_coupling_commands PRIVATE ${WHOLE_BODY_LIBRARY} yaml-cpp delaunator)
 set_target_properties(test_g1_coupling_commands PROPERTIES BUILD_RPATH "${STAGING}/lib")
 add_test(NAME g1_coupling_commands COMMAND test_g1_coupling_commands
     "${CMAKE_CURRENT_SOURCE_DIR}/../config/g1.yaml")

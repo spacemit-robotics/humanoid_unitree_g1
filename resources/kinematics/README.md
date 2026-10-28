@@ -2,6 +2,9 @@
 
 `g1_hardware.yaml` 使用 `table_2d` 加载四列 CSV，单位为 rad。
 `g1_ankle.csv`、`g1_waist.csv` 是部署所需标定数据，单独提供、不进入源码版本控制。
+腰部还需配套 `g1_waist_triangles.csv`，由 `table_triangles_file` 加载有序三角网格，
+固定共享边和顶点处的选片顺序。表格和网格必须配套，缺少网格时初始化报错。
+网格 SHA256 为 `62a273945fc045dac56078d68ebc954638ece72a1cc19d26f381331e378812db`。
 
 | 表 | 输入列 | 输出列 |
 | --- | --- | --- |

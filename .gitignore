@@ -20,6 +20,7 @@ policy/
 # Calibration data is supplied separately from SDK source.
 /resources/kinematics/g1_ankle.csv
 /resources/kinematics/g1_waist.csv
+/resources/kinematics/g1_waist_triangles.csv
 
 # --- IDE 与系统 ---
 .vscode/

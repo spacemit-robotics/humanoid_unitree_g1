@@ -20,7 +20,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "whole_body_core.h"
+#include "core/whole_body_core.h"
 
 namespace {
 

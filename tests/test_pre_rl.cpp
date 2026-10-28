@@ -20,7 +20,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "behavior_manager.h"
-#include "whole_body_core.h"
+#include "core/whole_body_core.h"
 
 namespace {
 
@@ -72,7 +72,7 @@ size_t Index(const std::vector<T> &items, const std::string &name) {
 
 class PreRlTest {
     public:
-    PreRlTest(const std::string &yaml_path, const std::string &fixture_path)
+    PreRlTest(const std::string &yaml_path, const std::string &fixture_path, bool hanging_ankle = false)
         : config_(whole_body::LoadConfig(yaml_path)), yaml_(YAML::LoadFile(yaml_path)), manager_(yaml_path) {
         Require(!config_.read_only && config_.allow_actuation, "operator actuation must be configured");
         Require(config_.num_dof == 29 && std::abs(config_.cycle_s - 0.002) < 1e-12, "29 DOF at 500 Hz");
@@ -85,6 +85,24 @@ class PreRlTest {
         for (size_t i = 0; i < 4; ++i) fake_->sensor.quat[i] = fixture["torso_quaternion"][i].as<float>();
         for (const auto &coupling : config_.couplings)
             mappings_.push_back(std::make_unique<whole_body::CoupledMapping>(coupling));
+        const auto home = yaml_["behavior_manager"]["home"];
+        for (size_t i = 0; i < config_.joints.size(); ++i) {
+            Require(home["target_position_lower"][i].as<double>() == config_.joints[i].position_limit[0] &&
+                home["target_position_upper"][i].as<double>() == config_.joints[i].position_limit[1],
+                "HOME and hardware must use the same joint envelope");
+        }
+        if (hanging_ankle) {
+            for (size_t n = 0; n < 2; ++n) {
+                std::array<double, 2> motor{};
+                Require(mappings_[n]->JointToMotor({0.0, n == 0 ? 0.269196 : -0.266339}, &motor),
+                    "hanging-ankle fixture must be reachable");
+                for (size_t i = 0; i < 2; ++i) {
+                    const size_t index = Index(config_.motors, config_.couplings[n].motors[i]);
+                    fake_->feedback[index].pos = static_cast<float>(motor[i] / config_.motors[index].polarity +
+                        config_.motors[index].zero_offset);
+                }
+            }
+        }
         core_ = std::make_unique<whole_body::WholeBodyCore>(config_, std::move(devices));
         Require(core_->Init() == WHOLE_BODY_OK, "fake initialization");
         for (const auto &command : fake_->written)
@@ -201,6 +219,11 @@ class PreRlTest {
         manager_.Step(static_cast<float>(config_.cycle_s), 0.02f);
         Require(!manager_.CurrentFault().latched, "FSM fault: " + manager_.CurrentFault().detail);
         const auto &output = manager_.GetOutput();
+        if (manager_.CurrentState() == behavior_manager::StateName::HOME) {
+            for (size_t i = 0; i < 29; ++i)
+                Require(output.target_pos[i] >= config_.joints[i].position_limit[0] &&
+                    output.target_pos[i] <= config_.joints[i].position_limit[1], "HOME target must stay in bounds");
+        }
         whole_body_joint_command command{};
         command.num_dof = 29;
         command.enable = output.enable;
@@ -256,6 +279,8 @@ int main(int argc, char **argv) {
         Require(argc == 3, "usage: test_g1_pre_rl g1.yaml recorded_pose.yaml");
         PreRlTest test(argv[1], argv[2]);
         test.Run();
+        PreRlTest hanging_test(argv[1], argv[2], true);
+        hanging_test.Run();
         return 0;
     } catch (const std::exception &error) {
         std::cerr << "FAIL: " << error.what() << '\n';
