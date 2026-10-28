@@ -19,5 +19,8 @@ python3 application/native/humanoid_unitree_g1/tests/mnn/test_runtime.py --stair
 ```
 
 `--viewer` 打开可视化；`--logging-check` 校验日志概览与高频片段。
+`--dance-catalog` 检查待命取消、律动 1–4 播放、重复取消及返回走跑，验证每次
+请求都有回执、状态持续回传且无锁存故障。测试单独保留八份日志分片，生产日志配置不变。
+`--check-run output/记录目录` 配合原场景参数仅复查已有日志，不启动进程。
 另有 `test_mnn_sim.cpp` 在同一进程内测试策略与物理仿真，构建文件位于本目录。
 结果写入 SDK 的 `output/`，不进入源码版本控制。

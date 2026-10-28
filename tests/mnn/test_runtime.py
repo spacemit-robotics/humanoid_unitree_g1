@@ -17,6 +17,18 @@ import time
 
 import yaml
 
+EXPECTED_GESTURES = {"shake_hand", "wave_above_head", "wave_under_head",
+                     "blow_kiss_with_right_hand", "clamp"}
+
+
+def csv_rows(path):
+    """Read every rotated part in chronological order, including its header."""
+    rotated = [part for part in path.parent.glob(path.name + ".*")
+               if part.suffix[1:].isdigit()]
+    for part in [*sorted(rotated, key=lambda item: int(item.suffix[1:]), reverse=True), path]:
+        with part.open() as stream:
+            yield from csv.DictReader(stream)
+
 
 def main():
     """Use an isolated SHM prefix and force the MuJoCo backend; never open devices."""
@@ -26,6 +38,8 @@ def main():
                         help="Observe real simulation status with the dry-run audio process")
     parser.add_argument("--logging-check", action="store_true",
                         help="Use production blackbox logging and validate a manual full-rate capture")
+    parser.add_argument("--check-run", type=Path,
+                        help="Validate saved logs only; use the same scenario flags as the original run")
     scenario = parser.add_mutually_exclusive_group()
     scenario.add_argument("--gestures", action="store_true")
     scenario.add_argument("--motion-modes", action="store_true")
@@ -34,6 +48,10 @@ def main():
     args = parser.parse_args()
     if args.logging_check and (args.gestures or args.motion_modes or args.dance_catalog or args.stairs):
         parser.error("--logging-check uses the default stance/motion/turn sequence")
+    if args.check_run:
+        config = yaml.safe_load((args.check_run / "sim.yaml").read_text())
+        validate_run(args, config, args.check_run)
+        return
     machine = Path(__file__).resolve().parents[2]
     sdk = machine.parents[2]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -50,8 +68,10 @@ def main():
     if not args.logging_check:
         # These bounded regression scenarios compare every inference/transition sample.
         config["logging"]["blackbox"]["enabled"] = False
-        # Retain the complete 154 s dance sequence instead of rotating its wide CSV.
-        config["logging"].setdefault("file", {})["max_size_mb"] = 128
+    if args.dance_catalog:
+        # Full-rate dance observations exceed four 16 MiB parts over this
+        # 154-second test. Retain the complete local fixture, not just its tail.
+        config["logging"]["file"]["max_files"] = 8
     with socket.socket() as port_probe:
         port_probe.bind(("127.0.0.1", 0))
         config["operator_service"]["port"] = port_probe.getsockname()[1]
@@ -63,9 +83,7 @@ def main():
     events = [(0.3, "l"), (2, "o"), (3, "h"), (8, "z"), (12, "r"), (16, "v"),
               (17, "wwwww"), (25, " "), (30, "qqqqq"), (35, " "), (41, "v"), (42, "f")]
     if args.gestures:
-        expected_actions = {"shake_hand", "wave_above_head", "wave_under_head",
-                            "blow_kiss_with_right_hand", "clamp"}
-        if set(config["arm_interactions"]["action_names"]) != expected_actions:
+        if set(config["arm_interactions"]["action_names"]) != EXPECTED_GESTURES:
             raise RuntimeError("Unexpected G1 gesture catalog")
         events = [(0.3, "l"), (2, "o"), (3, "h"), (8, "z"), (12, "r"),
                   (16, "a\r"), (20, "c"), (22, "aj\r"), (31, "ajj\r"),
@@ -80,11 +98,14 @@ def main():
         events = [(0.3, "l"), (2, "o"), (3, "h"), (8, "z"), (12, "r"),
                   (13, "pj\r"), (17, "vwwwww"), (39, " "), (41, "v"), (42, "f")]
     if args.dance_catalog:
-        # Complete all four selected rhythm clips, then cancel a repeated clip.
+        # Reproduce repeated standby cancellation, play all clips, then cancel
+        # a repeated clip several times without restarting its blend-out.
         events = [(0.3, "l"), (2, "o"), (3, "h"), (8, "z"), (12, "r"),
-                  (16, "pjj\r"), (20, "a\r"), (52, "aj\r"),
+                  (16, "pjj\r"), (18, "c"), (18.2, "c"), (18.4, "c"),
+                  (20, "a\r"), (52, "aj\r"),
                   (78, "ajj\r"), (99, "ajjj\r"), (132, "a\r"),
-                  (140, "c"), (146, "pkk\r"), (152, "f")]
+                  (140, "c"), (140.2, "c"), (140.4, "c"), (141, "c"),
+                  (146, "pkk\r"), (152, "f")]
     try:
         command = [str(sdk / "output/staging/bin/run_g1.sh"), "--sim"]
         if args.stairs:
@@ -147,6 +168,11 @@ def main():
         for stream in streams:
             stream.close()
         print(output)
+    validate_run(args, config, output)
+
+
+def validate_run(args, config, output):
+    """Validate recorded state transitions and replies without restarting a run."""
     if args.audio_check:
         audio = (output / "audio.log").read_text()
         required = {"service.ready", "state.DAMP", "policy.walk_mnn", "state.POWER_OFF"}
@@ -155,7 +181,7 @@ def main():
         if args.motion_modes:
             required.add("policy.walk_obstacle_mnn")
         if args.gestures:
-            required.update("action." + key for key in expected_actions)
+            required.update("action." + key for key in EXPECTED_GESTURES)
             required.update(("control.acquired", "control.released"))
         if args.dance_catalog:
             required.update("action.rhythm_" + str(index) for index in range(1, 5))
@@ -190,13 +216,9 @@ def main():
     for required in required_events:
         if required not in control_log:
             raise RuntimeError(f"Missing runtime event: {required}")
-    expected_entries = 4 if args.motion_modes else 3 if args.dance_catalog else 2 if args.stairs else 1
-    if control_log.count("进入 RL") != expected_entries:
-        raise RuntimeError("Unexpected number of policy entries")
     control_dir = next((output / "logs").glob("*_control_*"))
     if args.logging_check:
-        with (control_dir / "control_trace.csv").open() as stream:
-            overview = list(csv.DictReader(stream))
+        overview = list(csv_rows(control_dir / "control_trace.csv"))
         if not 30 <= len(overview) <= 100:
             raise RuntimeError(f"Unexpected persistent overview rate: {len(overview)} rows")
         incidents = list(control_dir.glob("incident_*"))
@@ -209,10 +231,16 @@ def main():
                 raise RuntimeError(f"Incident ID was not shared with {component}")
         control_dir = incidents[0]
         print(f"PASS: {len(overview)} overview rows; shared full-rate incident {incident_name}")
-    with (control_dir / "control_trace.csv").open() as stream:
-        trace = list(csv.DictReader(stream))
-    with (control_dir / "control_joint.csv").open() as stream:
-        joints = {row["device_time_s"]: row for row in csv.DictReader(stream)}
+    trace = list(csv_rows(control_dir / "control_trace.csv"))
+    joints = {row["device_time_s"]: row for row in csv_rows(control_dir / "control_joint.csv")}
+    # The asynchronous console logger may drop a duplicate informational line.
+    # Count actual sampled FSM/policy changes, not printf delivery.
+    expected_entries = 4 if args.motion_modes else 3 if args.dance_catalog else 2 if args.stairs else 1
+    actual_entries = sum(current["state"] == "RL" and
+                         (previous["state"] != "RL" or previous["policy"] != current["policy"])
+                         for previous, current in zip(trace, trace[1:]))
+    if actual_entries != expected_entries:
+        raise RuntimeError(f"Unexpected number of policy entries: {actual_entries}, expected {expected_entries}")
     # Asynchronous diagnostic channels can drop different samples. Compare only
     # paired state/joint frames, with a bounded gap across the transition.
     paired_trace = [row for row in trace if row["device_time_s"] in joints]
@@ -241,8 +269,15 @@ def main():
         raise RuntimeError("RL did not remain active throughout the motion sequence")
     if args.dance_catalog:
         terminal = (output / "launcher.txt").read_text(errors="replace")
-        with (control_dir / "control_policy_dance_mnn.csv").open() as stream:
-            inference = list(csv.DictReader(stream))
+        for failure in ("invalid interaction metadata", "status validation/send failed"):
+            if failure in control_log:
+                raise RuntimeError(f"Dance cancellation damaged status reporting: {failure}")
+        hmi_log = next((output / "logs").glob("*_hmi_*/events.log")).read_text()
+        if hmi_log.count("cancel completed: control handled action request") != 7:
+            raise RuntimeError("Standby/repeated cancellation requests did not all complete")
+        if hmi_log.count("interaction completed: control handled action request") != 5:
+            raise RuntimeError("Dance starts did not all complete after standby cancellation")
+        inference = list(csv_rows(control_dir / "control_policy_dance_mnn.csv"))
         if len(inference) < 6000 or any(row["result"] != "published" for row in inference):
             raise RuntimeError("Incomplete dance catalog inference")
         for name in ("rhythm_1", "rhythm_2", "rhythm_3", "rhythm_4"):
@@ -254,7 +289,8 @@ def main():
             # RobotData::InteractionStatus::Phase values recorded by StateRL.
             if not {"2", "5"}.issubset(phases):
                 raise RuntimeError(f"Incomplete dance selection/return: {name}: {phases}")
-        print("PASS: four rhythm clips completed via TUI; cancellation and return to locomotion passed.")
+        print("PASS: standby/repeated cancellation kept status live; four rhythm clips "
+              "completed via TUI; return to locomotion passed.")
         return
     if args.motion_modes:
         terminal = (output / "launcher.txt").read_text(errors="replace")
