@@ -109,7 +109,7 @@ class PreRlTest {
             Require(command.mode == MOTOR_MODE_IDLE && command.kp == 0 && command.kd == 0 &&
                 command.trq_des == 0, "initialization may send IDLE only");
         manager_.Init();
-        Require(manager_.CurrentPolicyName() == "walk_mnn", "default policy is MNN");
+        Require(manager_.CurrentPolicyName() == "walk_mjlab", "default policy is walk_mjlab");
     }
 
     void Run() {

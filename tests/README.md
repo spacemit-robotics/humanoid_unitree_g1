@@ -29,6 +29,6 @@ python3 -B application/native/humanoid_unitree_g1/tests/audio/test_audio_assets.
 python3 -B -m unittest discover -s application/native/humanoid_unitree_g1/tests/launcher -p 'test_*.py'
 ```
 
-[MNN 仿真](mnn/README.md) 验证模型、状态机与交接，
+[策略仿真](policies/README.md) 验证公开模型、状态机与交接，
 [启动器测试](launcher/README.md) 验证三进程生命周期和服务配置。
 实机接线、机械范围与承载测试需在实际硬件上单独进行。

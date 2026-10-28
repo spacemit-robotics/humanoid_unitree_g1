@@ -13,9 +13,7 @@
 - `resources/arm_interactions/`、`resources/audio/`：交互动作和可选音频的配置说明。
 
 依赖 `humanoid_common`、`whole_body`、`motor`、`imu`、`rl` 和 `mujoco`。
-RL 默认构建包含 MNN 后端；MNN 依赖由 RL 的 CMake 自动获取并缓存，
-已有 SDK 可通过 `MNN_ROOT` 指定。
-MNN 是推理格式，不决定状态机或关节控制方式。
+本机型的策略目录使用 ONNX，推理依赖由 RL 组件的 CMake 管理。
 
 完整构建在 SDK 根目录执行：
 
@@ -50,22 +48,24 @@ HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态；等待当�
 
 | 显示名称 | 策略键 | 执行方式 |
 | --- | --- | --- |
-| 走跑运控 | `walk_mnn` | 站立与运动双网络，共用观测和动作历史 |
-| 越障运控 | `walk_obstacle_mnn` | 站立、越障、跑步三网络，21 维动作 |
-| 舞蹈运控 | `dance_mnn` | 29 维动作解码器，待命与律动四段 |
+| 行走 · MJLab | `walk_mjlab` | 29 轴行走，零命令站立；默认策略 |
+| 行走 · RL Gym | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
+| 站立 | `stand` | 独立站立策略，不接收移动命令 |
+| 动作跟踪 · 舞蹈／功夫 | `dance`、`kungfu` | 动作内置于网络，先运行站立前置策略 |
+| 动作跟踪 · Dance 1／Packed／Jumps 1 | `tracking`、`tracking_packed`、`tracking_wbt_jumps1` | 每个模型使用配套参考动作 |
+| SONIC | `sonic` | 同一模型通过动作目录选择参考动作 |
+| ProtoMotions | `protomotions` | 使用配套参考序列的全身跟踪 |
 
-默认选择走跑运控。三种模式属于同一切换组，可在 RL 内归零速度、等待站稳并完成交接。
-其他策略配置保留为显式选用的资源，不在默认遥控菜单中显示。
-模式、资源接口和律动时间段见 [运控说明](resources/motion_modes/README.md)。
-
-走跑模式支持握手、高举挥手、胸前挥手、飞吻、鼓掌。
-动作接管双臂及腰部 17 轴，双腿继续由站立策略控制。
-进入动作前先停止移动，动作结束或取消后归还控制权。
+策略目录、切换组、前置策略及动作结束后的返回策略均在 YAML 中配置。
+RL 内切换由 common 后台准备目标模型，保留当前控制；准备成功并满足交出条件后，
+用目标策略的 `policy_switch.transition_duration` 同步过渡位置和 KP/KD。
+加载失败保留当前策略。模型输入、动作尺度和增益不跨策略复用。
+具体播放与交接条件见 [运控说明](resources/motion_modes/README.md)。
 
 - [手柄操作](docs/gamepad.md)：绑定、长按、控制权与震动。
 - [手机遥控](docs/phone_teleop.md)：按键、双摇杆、速度限制与平滑。
 - [提示音](docs/audio_prompts.md)：事件、播报内容与独立播放进程。
-- [手臂动作接口](resources/arm_interactions/README.md)：NPZ 列序、增益和交接。
+- [手臂动作接口](resources/arm_interactions/README.md)：可选上身轨迹的格式；默认策略不挂载此目录。
 
 ## 硬件配置
 

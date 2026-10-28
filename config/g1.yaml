@@ -70,39 +70,6 @@ driver:
 whole_body:
   config_file: "g1_hardware.yaml"
 
-# Upper-body trajectories take over both arms and waist; legs retain stance control.
-# Joint order and playback contract: resources/arm_interactions/README.md.
-arm_interactions:
-  motion_fps: 50
-  blend_in_duration: 1.0
-  blend_out_duration: 1.0
-  kp: [90, 60, 60, 60, 40, 40, 40, 90, 60, 60, 60, 40, 40, 40, 200, 200, 200]
-  kd: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 5, 5]
-  action_names: [shake_hand, wave_above_head, wave_under_head, blow_kiss_with_right_hand, clamp]
-  actions:
-    shake_hand:
-      display_name: "握手"
-      file: "resources/arm_interactions/shake_hand.npz"
-      joint_indices: &g1_interaction_indices [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 12, 13, 14]
-      hold_last_frame: true
-      max_hold_duration: 20.0  # Release the held pose after 20 seconds.
-    wave_above_head:
-      display_name: "高举挥手"
-      file: "resources/arm_interactions/wave_above_head.npz"
-      joint_indices: *g1_interaction_indices
-    wave_under_head:
-      display_name: "胸前挥手"
-      file: "resources/arm_interactions/wave_under_head.npz"
-      joint_indices: *g1_interaction_indices
-    blow_kiss_with_right_hand:
-      display_name: "飞吻（右手）"
-      file: "resources/arm_interactions/blow_kiss_with_right_hand.npz"
-      joint_indices: *g1_interaction_indices
-    clamp:
-      display_name: "鼓掌"
-      file: "resources/arm_interactions/clamp.npz"
-      joint_indices: *g1_interaction_indices
-
 # Shared terminal, web and Android operator service; simulation remains local-only.
 operator_service:
   bind_address: "127.0.0.1"
@@ -112,10 +79,9 @@ operator_service:
     deadzone: 0.06
     # Forward speed presets; each policy also applies its command limits.
     # Choose operating speeds for the available space and support conditions.
-    # Lateral/yaw caps retain the current walk_mnn command limits. All policies
-    # additionally clamp to their own command.limits; TUI behavior is unchanged.
-    slow_limits: [0.6, 0.6, 1.0]
-    fast_limits: [1.5, 0.6, 1.0]
+    # Public walking models retain their own command limits.
+    slow_limits: [0.3, 0.3, 0.5]
+    fast_limits: [0.5, 0.3, 0.5]
     # Client ramps for policies without their own command smoothing.
     # [vx, vy, wz], in m/s^2, m/s^2, rad/s^2.
     acceleration: [1.0, 1.0, 2.0]
@@ -146,20 +112,22 @@ operator_gamepad:
     - {buttons: [RB], operation: state, value: ZERO, hold_ms: 1000}
     - {buttons: [LB, RB], operation: state, value: RL, hold_ms: 1000}
     - {buttons: [R3], operation: ack, trigger: tap}
-    - {buttons: [LT, A], operation: policy, value: walk_mnn, hold_ms: 1000}
-    - {buttons: [LT, B], operation: policy, value: walk_obstacle_mnn, hold_ms: 1000}
-    - {buttons: [LT, X], operation: policy, value: dance_mnn, hold_ms: 1000}
-    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mnn}
-    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_obstacle_mnn}
-    - {buttons: [RT, A], operation: action, value: shake_hand, trigger: tap, policy: walk_mnn}
-    - {buttons: [RT, B], operation: action, value: wave_under_head, trigger: tap, policy: walk_mnn}
-    - {buttons: [RT, X], operation: action, value: blow_kiss_with_right_hand, trigger: tap, policy: walk_mnn}
-    - {buttons: [RT, Y], operation: action, value: clamp, trigger: tap, policy: walk_mnn}
-    - {buttons: [RT, UP], operation: action, value: wave_above_head, trigger: tap, policy: walk_mnn}
-    - {buttons: [RT, A], operation: action, value: rhythm_1, hold_ms: 1000, policy: dance_mnn}
-    - {buttons: [RT, B], operation: action, value: rhythm_2, hold_ms: 1000, policy: dance_mnn}
-    - {buttons: [RT, X], operation: action, value: rhythm_3, hold_ms: 1000, policy: dance_mnn}
-    - {buttons: [RT, Y], operation: action, value: rhythm_4, hold_ms: 1000, policy: dance_mnn}
+    - {buttons: [LT, A], operation: policy, value: walk_mjlab, hold_ms: 1000}
+    - {buttons: [LT, B], operation: policy, value: walk_rlgym, hold_ms: 1000}
+    - {buttons: [LT, X], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
+    - {buttons: [LT, UP], operation: policy, value: protomotions, hold_ms: 1000}
+    - {buttons: [RT, A], operation: policy, value: dance, hold_ms: 1000}
+    - {buttons: [RT, B], operation: policy, value: kungfu, hold_ms: 1000}
+    - {buttons: [RT, X], operation: policy, value: tracking, hold_ms: 1000}
+    - {buttons: [RT, Y], operation: policy, value: tracking_packed, hold_ms: 1000}
+    - {buttons: [RT, UP], operation: policy, value: tracking_wbt_jumps1, hold_ms: 1000}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
+    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking}
+    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking_packed}
+    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking_wbt_jumps1}
+    - {buttons: [L3], operation: action, value: dance_in_da_party, hold_ms: 1000, policy: sonic}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -178,20 +146,8 @@ audio_prompts:
     control.released: control_released.wav
     state.POWER_OFF: power_off.wav
     state.DAMP: damp.wav
-    policy.walk_mnn: walk_mode.wav
-    policy.walk_obstacle_mnn: obstacle_mode.wav
-    policy.dance_mnn: dance_mode.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
-    action.shake_hand: shake_hand.wav
-    action.wave_above_head: wave_above_head.wav
-    action.wave_under_head: wave_under_head.wav
-    action.blow_kiss_with_right_hand: blow_kiss.wav
-    action.clamp: clap.wav
-    action.rhythm_1: {prefix: wow.wav, file: groove.wav, music: true, max_play_seconds: 30.0}
-    action.rhythm_2: {prefix: wow.wav, file: groove.wav, music: true, max_play_seconds: 30.0}
-    action.rhythm_3: {prefix: wow.wav, file: groove.wav, music: true, max_play_seconds: 30.0}
-    action.rhythm_4: {prefix: wow.wav, file: groove.wav, music: true, max_play_seconds: 30.0}
     fault: fault.wav
 
 logging:
@@ -253,6 +209,8 @@ simulation:
 # Behavior Manager 模块参数（FSM 状态机控制）
 # ============================================================
 behavior_manager:
+  policy_switch:
+    timeout_s: 300.0  # Includes the longest configured reference (244.44 s).
   safety:
     driver_state_timeout_s: 0.20
     max_roll: 0.7
@@ -300,41 +258,16 @@ behavior_manager:
 # ============================================================
 # RL Policy 模块参数
 # ============================================================
-dance_actions:
-  action_names: [rhythm_1, rhythm_2, rhythm_3, rhythm_4]
+sonic_actions:
+  default_action: dance_in_da_party
+  transition_duration: 0.5
+  action_names: [dance_in_da_party]
   actions:
-    rhythm_1:
-      display_name: 律动 1
-      root_pose: true
-      start_time: 0.8
-      end_time: 28.6
-      mask_root_position: true
-      model_path: policy/motion-tracking/dance/decoder.mnn
-      file: policy/motion-tracking/dance/rhythm.csv
-    rhythm_2:
-      display_name: 律动 2
-      root_pose: true
-      start_time: 34.4
-      end_time: 56.2
-      mask_root_position: true
-      model_path: policy/motion-tracking/dance/decoder.mnn
-      file: policy/motion-tracking/dance/rhythm.csv
-    rhythm_3:
-      display_name: 律动 3
-      root_pose: true
-      start_time: 57.2
-      end_time: 74.2
-      mask_root_position: true
-      model_path: policy/motion-tracking/dance/decoder.mnn
-      file: policy/motion-tracking/dance/rhythm.csv
-    rhythm_4:
-      display_name: 律动 4
-      root_pose: true
-      start_time: 75.2
-      end_time: 103.2
-      mask_root_position: true
-      model_path: policy/motion-tracking/dance/decoder.mnn
-      file: policy/motion-tracking/dance/rhythm.csv
+    dance_in_da_party:
+      display_name: Dance in da Party
+      file: policy/sonic/dance_in_da_party_001__A464
+      motion_fps: 50
+      loop: false
 
 rl_policy:
   type: "onnx_infer"
@@ -343,208 +276,16 @@ rl_policy:
   rl_dt: 0.02
   
   onnx_infer:
-    # Only catalog entries can be selected. Legacy definitions/assets remain offline.
-    policy_names: [walk_mnn, walk_obstacle_mnn, dance_mnn]
-    default_policy: "walk_mnn"  # 双 MNN 站走策略；启动仍保持 POWER_OFF
+    # Each entry retains its own observation/action contract and controller gains.
+    policy_names: [walk_mjlab, walk_rlgym, stand, dance, kungfu, tracking,
+                   tracking_packed, tracking_wbt_jumps1, sonic, protomotions]
+    default_policy: walk_mjlab
 
     policies:
-      walk_mnn:
-        display_name: 走跑运控
-        switch_group: motion_modes
-        # Paired stance/motion networks shared by simulation and hardware.
-        # stance SHA256 cd737200c402b6e171a5dac4c4a7a14f82ca48b772afd9e48f64798cc519b097
-        # motion SHA256 2614b82f279cd45d40db4a87c9c64ca61027160017b81fd24cbd42427284cc18
-        backend: mnn
-        model_path: "policy/locomotion/stance.mnn"
-        target_position_lower: *joint_lower
-        target_position_upper: *joint_upper
-        target_limit_margin: 0.0
-        entry_target_transition_duration: 0.0
-        runtime: {provider: cpu, threads: 1, warmup_runs: 2}
-        model_io:
-          inputs:
-            - {name: commands, source: external}
-            - {name: proprioception, source: observation}
-            - {name: memory, source: external}
-          outputs:
-            - {name: actor_actions, target: action}
-        custom_array_dims: {proprioception: 96}
-        observation:
-          segment_0_terms: [proprioception]
-          strict_dim_check: true
-        action_joint_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-                             15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
-        action_scale: [0.5475, 0.3507, 0.5475, 0.3507, 0.4386, 0.4386,
-                       0.5475, 0.3507, 0.5475, 0.3507, 0.4386, 0.4386,
-                       0.5475, 0.4386, 0.4386,
-                       0.4386, 0.4386, 0.4386, 0.4386, 0.4386, 0.3725, 0.3725,
-                       0.4386, 0.4386, 0.4386, 0.4386, 0.4386, 0.3725, 0.3725]
-        action_blend_ratio: 1.0
-        infer_decimation: 1
-        rl_default_pos: [-0.15, 0, 0, 0.3, -0.15, 0,
-                         -0.15, 0, 0, 0.3, -0.15, 0, 0, 0, 0,
-                         0.26, 0.14, -0.09, 0.96, 0, 0, 0,
-                         0.26, -0.14, 0.09, 0.96, 0, 0, 0]
-        kp: [40.1792, 99.0984, 40.1792, 99.0984, 28.5012, 28.5012,
-             40.1792, 99.0984, 40.1792, 99.0984, 28.5012, 28.5012,
-             40.1792, 28.5012, 28.5012,
-             14.2506, 14.2506, 14.2506, 14.2506, 14.2506, 16.7783, 16.7783,
-             14.2506, 14.2506, 14.2506, 14.2506, 14.2506, 16.7783, 16.7783]
-        kd: [2.5579, 6.3088, 2.5579, 6.3088, 1.8144, 1.8144,
-             2.5579, 6.3088, 2.5579, 6.3088, 1.8144, 1.8144,
-             2.5579, 1.8144, 1.8144,
-             0.9072, 0.9072, 0.9072, 0.9072, 0.9072, 1.0681, 1.0681,
-             0.9072, 0.9072, 0.9072, 0.9072, 0.9072, 1.0681, 1.0681]
-        command:
-          init: [0, 0, 0]
-          limits: {min_vx: -0.6, max_vx: 2.0, max_vy: 0.6, max_wz: 1.0}
-          client_smoothing: false  # The stance_motion adapter already limits command changes.
-        policy_adapter:
-          type: stance_motion
-          joint_trajectory:
-            catalog: arm_interactions
-            measured_entry_max_velocity: 2.0
-            linear_blend: true
-          interaction_observation:
-            joint_indices: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-                            22, 23, 24, 25, 26, 27, 28]
-            # Neutral upper-body observation used during trajectory takeover.
-            # Keep this vector consistent with the selected stance model.
-            neutral_positions: [0, 0, 0, 0.26, 0.14, -0.09, 0.96, 0, 0, 0,
-                                0.26, -0.14, 0.09, 0.96, 0, 0, 0]
-            release_frames: 10
-          motion_model_path: "policy/locomotion/walk.mnn"
-          observation_term: proprioception
-          command_input: commands
-          history_input: memory
-          history_frames: 10
-          # Per inference tick (20 ms).
-          command_up_delta: [0.02, 0.02, 0.04]
-          command_down_delta: [0.05, 0.01, 0.05]
-          stand_threshold: [0.2, 0.2, 0.3]
-          stance_command: [0, 0, 0]
-          forward_mode_thresholds: [0.6, 1.5]
-          turn_scale: 2.0
-          orientation_frame: world
-          transpose_rotation: false
-        max_roll: 0.7
-        max_pitch: 0.7
-
-      walk_obstacle_mnn:
-        display_name: 越障运控
-        # These networks produce 21 actions for the 29-joint robot.
-        # log. This reduced mapping must be validated in simulation before hardware.
-        switch_group: motion_modes
-        backend: mnn
-        model_path: policy/locomotion/obstacle_stance.mnn
-        runtime: {provider: cpu, threads: 1, warmup_runs: 2}
-        model_io:
-          inputs:
-            - {name: commands, source: external}
-            - {name: proprioception, source: observation}
-            - {name: memory, source: external}
-          outputs:
-            - {name: actor_actions, target: action}
-        custom_array_dims: {proprioception: 69}
-        observation:
-          segment_0_terms: [proprioception]
-          strict_dim_check: true
-        action_joint_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-                             15, 16, 17, 18, 22, 23, 24, 25]
-        action_scale: 0.25
-        action_blend_ratio: 1.0
-        infer_decimation: 1
-        rl_default_pos: [-0.15, 0, 0, 0.3, -0.15, 0, -0.15, 0, 0, 0.3, -0.15, 0,
-                         0, 0, 0, 0.26, 0.3, -0.09, 0.8, 0, 0, 0, 0.26, -0.3, 0.09, 0.8, 0, 0, 0]
-        kp: [100, 100, 100, 150, 60, 60, 100, 100, 100, 150, 60, 60, 200, 200, 200,
-             60, 60, 60, 60, 40, 40, 40, 60, 60, 60, 60, 40, 40, 40]
-        kd: [4, 4, 4, 5, 3, 3, 4, 4, 4, 5, 3, 3, 6, 6, 6,
-             3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
-        command:
-          init: [0, 0, 0]
-          limits: {min_vx: -0.6, max_vx: 2.0, max_vy: 0.6, max_wz: 1.0}
-          client_smoothing: false
-        policy_adapter:
-          type: stance_motion
-          motion_model_path: policy/locomotion/obstacle.mnn
-          run_model_path: policy/locomotion/obstacle_run.mnn
-          gravity_observation: true
-          scaled_action_history: false  # 812 stores raw output; 802 stores scaled offsets.
-          observation_term: proprioception
-          command_input: commands
-          history_input: memory
-          history_frames: 5
-          command_up_delta: [0.02, 0.02, 0.04]
-          command_down_delta: [0.05, 0.01, 0.05]
-          stand_threshold: [0.2, 0.2, 0.3]
-          stance_command: [-0.08, 0, 0]
-          forward_mode_thresholds: [0.6, 1.5]
-          turn_scale: 2.0
-          orientation_frame: world
-          transpose_rotation: false
-        target_position_lower: *joint_lower
-        target_position_upper: *joint_upper
-        target_limit_margin: 0.0
-        entry_target_transition_duration: 0.0
-        max_roll: 0.7
-        max_pitch: 0.7
-
-      dance_mnn:
-        display_name: 舞蹈运控
-        # Rhythm and standby share the 550 May decoder; no cross-model handoff.
-        switch_group: motion_modes
-        backend: mnn
-        model_path: policy/motion-tracking/dance/decoder.mnn
-        runtime: {provider: cpu, threads: 1, warmup_runs: 2}
-        model_io:
-          inputs:
-            - {name: cmd, source: external}
-            - {name: p_obs, source: observation}
-          outputs:
-            - {name: act, target: action}
-        custom_array_dims: {history: 930}
-        observation:
-          segment_0_terms: [history]
-          strict_dim_check: true
-        action_joint_index: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
-                             15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
-        action_scale: 1.0
-        action_blend_ratio: 1.0
-        infer_decimation: 1
-        rl_default_pos: [-0.3, 0, 0, 0.6, -0.3, 0, -0.3, 0, 0, 0.6, -0.3, 0,
-                         0, 0, 0, 0.3, 0.3, 0, 0.97, 0, 0, 0, 0.3, -0.3, 0, 0.97, 0, 0, 0]
-        kp: [40.2, 99.1, 40.2, 99.1, 28.5, 28.5, 40.2, 99.1, 40.2, 99.1, 28.5, 28.5,
-             40.2, 28.5, 28.5, 14.3, 14.3, 14.3, 14.3, 14.3, 16.8, 16.8,
-             14.3, 14.3, 14.3, 14.3, 14.3, 16.8, 16.8]
-        kd: [2.6, 6.3, 2.6, 6.3, 1.8, 1.8, 2.6, 6.3, 2.6, 6.3, 1.8, 1.8,
-             2.6, 1.8, 1.8, 0.9, 0.9, 0.9, 0.9, 0.9, 1.1, 1.1,
-             0.9, 0.9, 0.9, 0.9, 0.9, 1.1, 1.1]
-        command:
-          init: [0, 0, 0]
-          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
-        policy_adapter:
-          type: history_actor
-          command_type: latent
-          observation_term: history
-          command_input: cmd
-          history_frames: 10
-          observation_clip: 100
-          gyro_scale: 0.2
-          velocity_scale: 0.05
-          transition_duration: 0.5
-          root_position_error_clip: 1.0
-          reference_file: policy/motion-tracking/dance/standby.csv
-          reference_root_pose: true
-          reference_mask_root_position: true
-          catalog: dance_actions
-        target_position_lower: *joint_lower
-        target_position_upper: *joint_upper
-        target_limit_margin: 0.0
-        entry_target_transition_duration: 0.0
-        max_roll: 0.7
-        max_pitch: 0.7
-
       walk_rlgym:
+        display_name: 行走 · RL Gym
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         model_path: "policy/motion/motion.onnx"
         # Preserve hardware target bounds without delaying the walking policy at entry.
         target_position_lower: [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
@@ -600,6 +341,7 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
           # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
           limits:
+            min_vx: -0.3
             max_vx: 0.8
             max_vy: 0.4
             max_wz: 1.0
@@ -607,6 +349,9 @@ rl_policy:
         max_pitch: 0.7
 
       walk_mjlab:
+        display_name: 行走 · MJLab
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # Unitree 官方 unitree_rl_mjlab G1 velocity 示例模型：29DOF、50Hz、零命令站立。
         # 固定来源 commit: 1425b15f73bd4095f0df53709d7c389c3eb9e790
         # phase-gate 包装模型 SHA256: e8277aa4f03ad6df9d57fb5fb70a8d239f971ec3ff4093585dbbc6ede5d82951
@@ -664,7 +409,7 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
           limits:
-            # 上游 vx 为 [-0.5, 1.0]；当前 SDK limits 为对称范围，先保守取 0.5。
+            min_vx: -0.3
             max_vx: 0.5
             max_vy: 0.5
             max_wz: 1.0
@@ -686,6 +431,11 @@ rl_policy:
         entry_target_transition_duration: 0.0
 
       dance:
+        display_name: 动作跟踪 · 舞蹈
+        switch_group: full_body
+        # The motion clock starts with the first inference; do not lag its targets.
+        policy_switch: {transition_duration: 0.0}
+        return_policy: stand
         model_path: "policy/dance/dance_0605.onnx"
         model_io:
           inputs:
@@ -731,6 +481,7 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
         # 切到 dance 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
@@ -739,6 +490,10 @@ rl_policy:
           duration: 2.0
 
       kungfu:
+        display_name: 动作跟踪 · 功夫
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.0}
+        return_policy: stand
         model_path: "policy/kungfu/kungfu_0609.onnx"
         model_io:
           inputs:
@@ -784,6 +539,7 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
         # 切到 kungfu 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
@@ -792,6 +548,9 @@ rl_policy:
           duration: 2.0
 
       stand:
+        display_name: 站立
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
         # 控制 29 个关节，关节顺序为左右对称配对排列（见 action_joint_index）
         model_path: "policy/stand/stand_29dof.onnx"
@@ -869,6 +628,10 @@ rl_policy:
         entry_target_transition_duration: 0.5
 
       tracking:
+        display_name: 动作跟踪 · Dance 1
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        return_policy: stand
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
         model_io:
@@ -884,6 +647,7 @@ rl_policy:
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso: yaw/roll/pitch
           anchor_yaw_align: true
+          anchor_xy_align: true
         # 必须与 reference_file 中 joint_pos[0] 按标准电机关节顺序逐项一致；
         # 更换 NPZ 时必须同步更新。只有参考首帧一致的策略才能复用此锚点。
         zero_target_pos: &tracking_zero_target
@@ -941,10 +705,15 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
 
       tracking_packed:
+        display_name: 动作跟踪 · Packed
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        return_policy: stand
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
         # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
@@ -969,6 +738,7 @@ rl_policy:
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]
           anchor_yaw_align: true
+          anchor_xy_align: true
         zero_target_pos: *tracking_zero_target  # 两份 NPZ 的 joint_pos[0] 逐项一致
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
@@ -1012,10 +782,15 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
 
       tracking_wbt_jumps1:
+        display_name: 动作跟踪 · Jumps 1
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        return_policy: stand
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
@@ -1031,17 +806,21 @@ rl_policy:
             - {name: body_quat_w, target: ignore}
             - {name: body_lin_vel_w, target: ignore}
             - {name: body_ang_vel_w, target: ignore}
-        motion_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
-        motion_fps: 50
-        anchor_body_index: 9             # torso_link 在 npz 30-body（IsaacSim BFS 遍历）中的全局索引
+        policy_adapter:
+          type: mjlab
+          reference_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
+          motion_fps: 50
+          start_mode: manual
+          anchor_body_index: 9  # torso_link in the reference body's order
+          anchor_waist_joint_indices: [12, 13, 14]
+          anchor_yaw_align: true
+          anchor_xy_align: true
         # ZERO 阶段 PD 目标：npz frame 0（URDF 顺序），近直立站姿 + 双臂侧平举，腰部无后仰
         zero_target_pos: [-0.001, 0.004, 0.108, 0.185, -0.123, 0.000,
                            0.001, -0.042, -0.225, 0.218, -0.196, -0.012,
                            0.006, 0.000, -0.013,
                           -0.042, 1.629, -0.198, 1.191, 0.349, 0.220, 0.039,
                           -0.036, -1.641, 0.000, 1.302, -0.060, 0.075, -0.170]
-        anchor_waist_joint_indices: [12, 13, 14]
-        anchor_yaw_align: true
         # IsaacSim action[i] → URDF joint[action_joint_index[i]]
         action_joint_index: [0, 6, 12,
                              1, 7, 13,
@@ -1092,11 +871,19 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 2.0
         max_pitch: 2.0
 
       protomotions:
+        display_name: ProtoMotions
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        return_policy: stand
         # ProtoMotions G1 unified pipeline：5.64M 参数 MLP，输出为绝对 PD 目标。
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/protomotions/unified_pipeline.onnx"
         model_io:
           inputs:
@@ -1158,7 +945,13 @@ rl_policy:
         max_pitch: 2.0
 
       sonic:
+        display_name: SONIC
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/sonic/sonic_release_unified.onnx"
         model_io:
           inputs:
@@ -1220,6 +1013,7 @@ rl_policy:
           dof_pos_subtract_default: true
         policy_adapter:
           type: sonic
+          catalog: sonic_actions
           reference_file: "policy/sonic/dance_in_da_party_001__A464"
           motion_fps: 50
           future_frames: 10
@@ -1235,7 +1029,7 @@ hmi:
   command_heartbeat_hz: 20.0
   command_timeout: 0.5
   status_timeout: 0.6
-  request_timeout: 15.0
+  request_timeout: 305.0  # Allow behavior_manager to report handoff success/failure first.
   key_highlight_ms: 180
   velocity:
     step_vx: 0.1

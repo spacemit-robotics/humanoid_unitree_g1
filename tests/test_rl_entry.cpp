@@ -145,7 +145,7 @@ void SetFeedback(const whole_body::RuntimeConfig &config,
 }
 
 void CheckPolicyHold(const whole_body::RuntimeConfig &config, const YAML::Node &policies) {
-    for (const char *name : {"stand", "walk_mjlab", "walk_rlgym", "walk_mnn"}) {
+    for (const char *name : {"stand", "walk_mjlab", "walk_rlgym"}) {
         const auto policy = policies[name];
         ReplayRuntime runtime(config);
         std::array<double, 29> position{}, velocity{};
@@ -432,8 +432,8 @@ int main(int argc, char **argv) {
         Require(config.num_dof == 29 && !config.read_only && config.allow_actuation,
             "replay the deployed actuation configuration without changing protection limits");
         CheckPolicyHold(config, policies);
-        CheckWristCommands(config, policies["walk_mnn"]);
-        CheckWaistProjection(config, policies["walk_mnn"]);
+        CheckWristCommands(config, policies["walk_mjlab"]);
+        CheckWaistProjection(config, policies["walk_mjlab"]);
         const auto observations = LoadRecords(argv[2]);
         const auto targets = LoadRecords(argv[3]);
         ReplayRuntime runtime(config);

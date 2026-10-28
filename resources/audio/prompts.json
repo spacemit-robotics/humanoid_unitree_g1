@@ -5,17 +5,9 @@
   "damp.wav": "阻尼模式",
   "slow.wav": "慢速模式",
   "fast.wav": "快速模式",
-  "shake_hand.wav": "你好啊",
-  "wave_above_head.wav": "大家好啊",
-  "wave_under_head.wav": "很高兴见到你",
-  "blow_kiss.wav": "送你一个飞吻",
-  "clap.wav": "太棒了",
   "fault.wav": "程序出现故障",
   "gamepad_connected.wav": "手柄已连接",
   "gamepad_disconnected.wav": "手柄已断开",
   "control_acquired.wav": "已接管控制权",
-  "control_released.wav": "控制权已释放",
-  "walk_mode.wav": "走跑模式",
-  "obstacle_mode.wav": "越障模式",
-  "dance_mode.wav": "舞蹈模式"
+  "control_released.wav": "控制权已释放"
 }

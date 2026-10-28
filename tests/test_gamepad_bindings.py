@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
 # SPDX-License-Identifier: Apache-2.0
-"""Verify the agreed GameSir button table and existing action/voice IDs offline."""
+"""Verify the machine's policy catalog and GameSir button table offline."""
 
 from pathlib import Path
 import unittest
@@ -26,20 +26,24 @@ class GamepadBindingsTest(unittest.TestCase):
             ("RB", ""): ("state", "ZERO", 1000, "press"),
             ("LB+RB", ""): ("state", "RL", 1000, "press"),
             ("R3", ""): ("ack", "", 0, "tap"),
-            ("LT+A", ""): ("policy", "walk_mnn", 1000, "press"),
-            ("LT+B", ""): ("policy", "walk_obstacle_mnn", 1000, "press"),
-            ("LT+X", ""): ("policy", "dance_mnn", 1000, "press"),
-            ("Y", "walk_mnn"): ("preset", "toggle", 0, "tap"),
-            ("Y", "walk_obstacle_mnn"): ("preset", "toggle", 0, "tap"),
-            ("RT+A", "walk_mnn"): ("action", "shake_hand", 0, "tap"),
-            ("RT+B", "walk_mnn"): ("action", "wave_under_head", 0, "tap"),
-            ("RT+X", "walk_mnn"): ("action", "blow_kiss_with_right_hand", 0, "tap"),
-            ("RT+Y", "walk_mnn"): ("action", "clamp", 0, "tap"),
-            ("RT+UP", "walk_mnn"): ("action", "wave_above_head", 0, "tap"),
+            ("LT+A", ""): ("policy", "walk_mjlab", 1000, "press"),
+            ("LT+B", ""): ("policy", "walk_rlgym", 1000, "press"),
+            ("LT+X", ""): ("policy", "stand", 1000, "press"),
+            ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
+            ("LT+UP", ""): ("policy", "protomotions", 1000, "press"),
+            ("RT+A", ""): ("policy", "dance", 1000, "press"),
+            ("RT+B", ""): ("policy", "kungfu", 1000, "press"),
+            ("RT+X", ""): ("policy", "tracking", 1000, "press"),
+            ("RT+Y", ""): ("policy", "tracking_packed", 1000, "press"),
+            ("RT+UP", ""): ("policy", "tracking_wbt_jumps1", 1000, "press"),
+            ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
+            ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
+            ("L3", "tracking"): ("reference", "", 1000, "press"),
+            ("L3", "tracking_packed"): ("reference", "", 1000, "press"),
+            ("L3", "tracking_wbt_jumps1"): ("reference", "", 1000, "press"),
+            ("L3", "sonic"): ("action", "dance_in_da_party", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
         }
-        for index, key in enumerate("ABXY", 1):
-            expected[(f"RT+{key}", "dance_mnn")] = ("action", f"rhythm_{index}", 1000, "press")
         actual = {
             ("+".join(b["buttons"]), b.get("policy", "")):
                 (b["operation"], b.get("value", ""), b.get("hold_ms", 0), b.get("trigger", "press"))
@@ -48,15 +52,33 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(len(actual), len(self.bindings))
         self.assertEqual(actual, expected)
 
-    def test_existing_actions_and_audio(self):
-        catalog = {"walk_mnn": self.config["arm_interactions"]["action_names"],
-                   "dance_mnn": self.config["dance_actions"]["action_names"]}
-        for policy, actions in catalog.items():
-            mapped = {b["value"] for b in self.bindings
-                      if b["operation"] == "action" and b.get("policy") == policy}
-            self.assertEqual(mapped, set(actions))
-            for action in mapped:
-                self.assertIn(f"action.{action}", self.config["audio_prompts"]["clips"])
+    def test_catalog(self):
+        catalog = self.config["rl_policy"]["onnx_infer"]
+        mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
+        self.assertEqual(mapped, set(catalog["policy_names"]))
+        self.assertEqual(mapped, set(catalog["policies"]))
+        self.assertEqual(catalog["default_policy"], "walk_mjlab")
+        for name, policy in catalog["policies"].items():
+            self.assertTrue(policy["model_path"].endswith(".onnx"))
+            self.assertEqual(policy["switch_group"], "full_body")
+            if name not in ("walk_mjlab", "walk_rlgym"):
+                self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
+        self.assertEqual(self.config["sonic_actions"]["action_names"], ["dance_in_da_party"])
+
+    def test_unique_yaml_keys(self):
+        package = Path(__file__).resolve().parents[1]
+
+        def visit(node):
+            if isinstance(node, yaml.MappingNode):
+                keys = [key.value for key, _value in node.value]
+                self.assertEqual(len(keys), len(set(keys)), str(node.start_mark))
+                for _key, value in node.value:
+                    visit(value)
+            elif isinstance(node, yaml.SequenceNode):
+                for value in node.value:
+                    visit(value)
+
+        visit(yaml.compose((package / "config/g1.yaml").read_text()))
 
     def test_physical_keys(self):
         self.assertEqual(self.config["operator_gamepad"]["button_codes"], {"CAPTURE": 317})
@@ -65,16 +87,16 @@ class GamepadBindingsTest(unittest.TestCase):
 
     def test_speed_presets_only_increase_forward_speed(self):
         teleop = self.config["operator_service"]["teleop"]
-        self.assertEqual(teleop["slow_limits"], [0.6, 0.6, 1.0])
-        self.assertEqual(teleop["fast_limits"], [1.5, 0.6, 1.0])
+        self.assertEqual(teleop["slow_limits"], [0.3, 0.3, 0.5])
+        self.assertEqual(teleop["fast_limits"], [0.5, 0.3, 0.5])
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
-        for name in ("walk_mnn", "walk_obstacle_mnn"):
+        for name in ("walk_mjlab", "walk_rlgym"):
             with self.subTest(policy=name):
                 limits = policies[name]["command"]["limits"]
-                self.assertEqual(limits["min_vx"], -0.6)
-                self.assertGreaterEqual(limits["max_vx"], 1.5)
-                self.assertEqual(limits["max_vy"], 0.6)
-                self.assertEqual(limits["max_wz"], 1.0)
+                self.assertEqual(limits["min_vx"], -0.3)
+                self.assertGreaterEqual(limits["max_vx"], 0.5)
+                self.assertGreaterEqual(limits["max_vy"], 0.3)
+                self.assertGreaterEqual(limits["max_wz"], 0.5)
 
 
 if __name__ == "__main__":

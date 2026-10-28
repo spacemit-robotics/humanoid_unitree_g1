@@ -1,33 +1,37 @@
-# 运控配置与资源接口
+# 策略与动作
 
-模式由 `g1.yaml` 的策略目录注册；共享层不限制机型必须配置三种模式。
-同一 `switch_group` 内允许 RL 状态下交接，准备失败保留当前策略。
+`config/g1.yaml` 注册全部策略，默认 `walk_mjlab`。界面显示中文功能名，
+配置和日志使用下表 ID。权重与参考资源单独放入 `policy/`，不随源码提交；
+`download_models_g1.sh` 用于获取模型库中已发布的资源。
 
-| 模式 | 模型文件，相对于机型目录 | 输出 |
-| --- | --- | --- |
-| 走跑 | `policy/locomotion/stance.mnn`、`walk.mnn` | 29 维 |
-| 越障 | `policy/locomotion/obstacle_stance.mnn`、`obstacle.mnn`、`obstacle_run.mnn` | 21 维 |
-| 舞蹈 | `policy/motion-tracking/dance/decoder.mnn` | 29 维 |
-
-模型必须与 YAML 的输入名、历史长度、关节索引、动作尺度、默认姿态和增益一致。
-走跑的双网络共享历史，越障的三网络按速度条件选择；不通过退出 RL 来切换子网络。
-越障使用速度指令、本体状态和历史观测，没有视觉或高度图输入。
-`run_g1.sh --sim --stairs` 提供四级 5 cm 台阶、2 m 宽度、60 cm 踏步长的测试场景。
-
-舞蹈参考数据为 `policy/motion-tracking/dance/standby.csv` 和 `rhythm.csv`。
-潜变量、根部位置和四元数的列布局由 `history_actor` 配置解释，采样率为 50 Hz。
-律动序列共 5385 帧、107.70 秒，只按下表播放选择的片段：
-
-| 选项 | 时间范围，右端不含 | 帧范围 | 时长 |
+| 功能 | 策略 ID | 模型路径（相对机型目录） | 播放方式 |
 | --- | --- | --- | --- |
-| 律动 1 | 0.8–28.6 s | [40,1430) | 27.8 s |
-| 律动 2 | 34.4–56.2 s | [1720,2810) | 21.8 s |
-| 律动 3 | 57.2–74.2 s | [2860,3710) | 17.0 s |
-| 律动 4 | 75.2–103.2 s | [3760,5160) | 28.0 s |
+| 行走 · MjLab | `walk_mjlab` | `policy/walk_mjlab/policy.onnx` | 速度控制，零速站立 |
+| 行走 · RLGym | `walk_rlgym` | `policy/motion/motion.onnx` | 速度控制，零速仍有步态 |
+| 站立 | `stand` | `policy/stand/stand_29dof.onnx` | 零速度全身站立 |
+| 动作跟踪 · 舞蹈 | `dance` | `policy/dance/dance_0605.onnx` | 先运行 stand 2 秒，再播放内置动作 |
+| 动作跟踪 · 功夫 | `kungfu` | `policy/kungfu/kungfu_0609.onnx` | 先运行 stand 2 秒，再播放内置动作 |
+| 动作跟踪 · Dance 1 | `tracking` | `policy/tracking/policy.onnx` | 进入后保持首帧，手动开始 |
+| 动作跟踪 · Packed | `tracking_packed` | `policy/tracking_packed/policy_packed_0430.onnx` | 进入后保持首帧，手动开始 |
+| 动作跟踪 · Jumps 1 | `tracking_wbt_jumps1` | `policy/tracking_wbt_jumps1/policy.onnx` | 进入后保持首帧，手动开始 |
+| ProtoMotions | `protomotions` | `policy/protomotions/unified_pipeline.onnx` | 自动播放配套参考 |
+| SONIC | `sonic` | `policy/sonic/sonic_release_unified.onnx` | 进入后保持默认首帧，从动作目录选择播放 |
 
-片段前后使用 0.5 秒潜变量过渡，完成或取消后返回待命，不自动播放下一段。
-根部平移误差关闭，旋转误差使用姿态输入。片段检查工具为
-`scripts/analyze_rhythm_segments.py`；完整三进程回归为
-`tests/mnn/test_runtime.py --motion-modes` 和 `--dance-catalog`。
+完整路径以 YAML 为准。SONIC 的 `sonic_actions` 是同一模型下的动作目录，
+添加动作时增加目录条目即可；不需要复制 SONIC 策略或修改 common。
+其他独立训练模型仍按不同策略注册，不把它们伪装成同一模型的参考数据。
 
-模型与参考数据单独提供，不随源码分发；取得资源后按以上相对路径安装。
+RL 内选择同组策略时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
+普通站走策略在零速有效推理帧交接；正在播放的定时动作等到末帧。
+SONIC 会先收回到待命参考。完成的有限动作按 `return_policy` 返回 stand。
+Dance 1 和 Packed 的参考长 131.48 秒，Jumps 1 长 244.44 秒；播放中切换需等待该段结束。
+机型交接等待上限为 300 秒，模型加载失败或超时会报告失败并保留当前策略。
+HOME/ZERO 中不切换策略，仍遵守 DAMP→HOME→ZERO→RL 的准备顺序。
+
+输出过渡由各策略 `policy_switch.transition_duration` 配置，位置与增益同步变化。
+内置定时舞蹈不叠加输出延迟，依靠前置站立策略准备；模型时间、历史观测和动作映射保持各自协议。
+
+台阶场景启动命令为 `run_g1.sh --sim --stairs`。它仅增加仿真地形，不改变模型能力；
+当前行走策略不是专门的越障模型。
+
+验证命令见 [策略测试](../../tests/policies/README.md)。
