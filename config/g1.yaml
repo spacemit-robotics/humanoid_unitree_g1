@@ -126,7 +126,7 @@ operator_gamepad:
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
-    - {buttons: [RT, A], operation: action, value: dance_in_da_party, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
     - {buttons: [RT, A], operation: action, value: walk, hold_ms: 1000, policy: protomotions}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
@@ -259,13 +259,13 @@ behavior_manager:
 # RL Policy 模块参数
 # ============================================================
 sonic_actions:
-  default_action: dance_in_da_party
+  default_action: standing
   transition_duration: 0.5
-  action_names: [dance_in_da_party]
+  action_names: [standing]
   actions:
-    dance_in_da_party:
-      display_name: Dance in da Party
-      file: policy/sonic/dance_in_da_party_001__A464
+    standing:
+      display_name: 平稳站立
+      file: policy/sonic/standing
       motion_fps: 50
       loop: false
 
@@ -277,7 +277,7 @@ rl_policy:
   
   onnx_infer:
     # Each entry retains its own observation/action contract and controller gains.
-    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, protomotions]
+    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, sonic_planner, protomotions]
     default_policy: stand
 
     policies:
@@ -995,12 +995,11 @@ rl_policy:
                           0.0,   0.0, 0.0,
                           0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
                           0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
-        # 官方 dance 参考首帧，由 IsaacLab 顺序映射到 URDF 顺序。
-        zero_target_pos: [0.128441, -0.019236, 0.175869, 0.020642, -0.147584, 0.026962,
-                          0.102713, 0.020960, -0.137002, 0.050691, -0.111343, -0.016655,
-                          0.020116, -0.015831, 0.174060,
-                         -0.048029, 0.249355, -0.628862, 1.214126, -0.059122, 0.039018, 0.153431,
-                         -0.097087, -0.284472, 0.669457, 1.202778, 0.220654, 0.045179, -0.014889]
+        zero_target_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                           0.0, 0.0, 0.0,
+                           0.2, 0.2, 0.0, 0.6, 0.0, 0.0, 0.0,
+                           0.2, -0.2, 0.0, 0.6, 0.0, 0.0, 0.0]
         kp: [99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
              99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
              40.179, 28.501, 28.501,
@@ -1026,12 +1025,101 @@ rl_policy:
         policy_adapter:
           type: sonic
           catalog: sonic_actions
-          reference_file: "policy/sonic/dance_in_da_party_001__A464"
+          reference_file: "policy/sonic/standing"
           motion_fps: 50
           future_frames: 10
           future_step: 5
         max_roll: 2.0
         max_pitch: 2.0
+
+      sonic_planner:
+        display_name: SONIC 运控（规划行走）
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
+        model_path: "policy/sonic/sonic_release_unified.onnx"
+        model_io:
+          inputs:
+            - {name: reference_obs, source: external}
+            - {name: proprio_history, source: observation}
+          outputs:
+            - {name: action, target: action}
+        # ONNX action[i]（IsaacLab 顺序）-> URDF joint[action_joint_index[i]]。
+        action_joint_index: [0, 6, 12,
+                             1, 7, 13,
+                             2, 8, 14,
+                             3, 9, 15, 22,
+                             4, 10, 16, 23,
+                             5, 11, 17, 24,
+                             18, 25, 19, 26,
+                             20, 27, 21, 28]
+        action_scale: [0.350661, 0.350661, 0.547546,
+                       0.350661, 0.350661, 0.438577,
+                       0.547546, 0.547546, 0.438577,
+                       0.350661, 0.350661, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.074501, 0.074501, 0.074501, 0.074501]
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        rl_default_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                         -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          0.0,   0.0, 0.0,
+                          0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
+                          0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
+        zero_target_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                           0.0, 0.0, 0.0,
+                           0.2, 0.2, 0.0, 0.6, 0.0, 0.0, 0.0,
+                           0.2, -0.2, 0.0, 0.6, 0.0, 0.0, 0.0]
+        kp: [99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        kd: [6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        observation:
+          segment_0_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
+          segment_0_mode: flat_history
+          segment_0_length: 10
+          segment_0_order: oldest_first
+          segment_0_include_current: true
+          strict_dim_check: true
+          ang_vel_scale: 1.0
+          dof_pos_scale: 1.0
+          dof_vel_scale: 1.0
+          # SONIC 官方部署向 decoder 输入 q - default_angles。
+          dof_pos_subtract_default: true
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
+        policy_adapter:
+          type: sonic
+          motion_fps: 50
+          future_frames: 10
+          future_step: 5
+          planner:
+            enabled: true
+            model_path: policy/sonic/planner_sonic.onnx
+            mode: -1
+            output_fps: 50
+            replan_interval: 1.0
+            lookahead: 0.45
+            default_height: 0.788740
+            facing_horizon: 1.0
+            slow_walk_max_speed: 0.8
+            walk_max_speed: 2.5
+            random_seed: 1234
+            allowed_pred_num_tokens: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+            runtime:
+              provider: cpu
+              threads: 2
+              ort_spinning: false
 
 # ============================================================
 # HMI 参数（状态回传、心跳与键盘速度步长）

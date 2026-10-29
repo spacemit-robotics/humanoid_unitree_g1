@@ -52,7 +52,8 @@ HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态；等待当�
 | 常规运控（MJLab） | `walk_mjlab` | 29 轴行走，零命令站立 |
 | 常规运控（RL Gym） | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 进入后保持待命参考；从动作列表选择播放 |
+| SONIC 运控 | `sonic` | 使用配置中性姿态的静态参考，展示通用 tracker 的站立控制 |
+| SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
 | ProtoMotions 运控 | `protomotions` | 进入后站立待命；从动作列表触发行走参考动作 |
 
 模式入口和动作目录均在 YAML 中配置。`policy_names` 只列界面可选的模式；
