@@ -54,7 +54,6 @@ HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态；等待当�
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 使用配置中性姿态的静态参考，展示通用 tracker 的站立控制 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
-| ProtoMotions 运控 | `protomotions` | 进入后站立待命；从动作列表触发行走参考动作 |
 
 模式入口和动作目录均在 YAML 中配置。`policy_names` 只列界面可选的模式；
 `policy_actions` 为模式配置待命策略与动作模型，选择模式不启动动作。

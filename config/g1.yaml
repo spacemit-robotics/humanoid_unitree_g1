@@ -116,7 +116,7 @@ operator_gamepad:
     - {buttons: [LT, B], operation: policy, value: walk_mjlab, hold_ms: 1000}
     - {buttons: [LT, X], operation: policy, value: dance_mode, hold_ms: 1000}
     - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
-    - {buttons: [LT, UP], operation: policy, value: protomotions, hold_ms: 1000}
+    - {buttons: [LT, UP], operation: policy, value: sonic_planner, hold_ms: 1000}
     - {buttons: [LT, DOWN], operation: policy, value: walk_rlgym, hold_ms: 1000}
     - {buttons: [RT, A], operation: action, value: dance, hold_ms: 1000, policy: dance_mode}
     - {buttons: [RT, B], operation: action, value: kungfu, hold_ms: 1000, policy: dance_mode}
@@ -126,8 +126,8 @@ operator_gamepad:
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: sonic_planner}
     - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
-    - {buttons: [RT, A], operation: action, value: walk, hold_ms: 1000, policy: protomotions}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -146,6 +146,18 @@ audio_prompts:
     control.released: control_released.wav
     state.POWER_OFF: power_off.wav
     state.DAMP: damp.wav
+    policy.stand: locomotion_mode.wav
+    policy.walk_mjlab: locomotion_mode.wav
+    policy.walk_rlgym: locomotion_mode.wav
+    policy.dance_mode: dance_mode.wav
+    policy.sonic: sonic_mode.wav
+    policy.sonic_planner: sonic_planner_mode.wav
+    action.dance: dance.wav
+    action.kungfu: kungfu.wav
+    action.dance1: dance1.wav
+    action.packed: packed.wav
+    action.jumps1: jumps1.wav
+    action.standing: standing.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
     fault: fault.wav
@@ -277,7 +289,7 @@ rl_policy:
   
   onnx_infer:
     # Each entry retains its own observation/action contract and controller gains.
-    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, sonic_planner, protomotions]
+    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, sonic_planner]
     default_policy: stand
 
     policies:
@@ -632,17 +644,6 @@ rl_policy:
             packed: {display_name: Packed, policy: tracking_packed}
             jumps1: {display_name: Jumps 1, policy: tracking_wbt_jumps1}
 
-      protomotions:
-        display_name: ProtoMotions 运控
-        switch_group: full_body
-        command:
-          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
-        policy_actions:
-          idle_policy: stand
-          action_names: [walk]
-          actions:
-            walk: {display_name: 行走动作, policy: protomotions_walk}
-
       tracking:
         display_name: Dance 1
         switch_group: full_body
@@ -958,6 +959,7 @@ rl_policy:
 
       sonic:
         display_name: SONIC 运控
+        runtime: {provider: cpu, threads: 4, ort_spinning: false}
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
@@ -1034,6 +1036,7 @@ rl_policy:
 
       sonic_planner:
         display_name: SONIC 运控（规划行走）
+        runtime: {provider: cpu, threads: 4, ort_spinning: false}
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
@@ -1108,8 +1111,8 @@ rl_policy:
             model_path: policy/sonic/planner_sonic.onnx
             mode: -1
             output_fps: 50
-            replan_interval: 1.0
-            lookahead: 0.45
+            replan_interval: 0.5
+            lookahead: 0.8
             default_height: 0.788740
             facing_horizon: 1.0
             slow_walk_max_speed: 0.8
@@ -1118,7 +1121,7 @@ rl_policy:
             allowed_pred_num_tokens: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
             runtime:
               provider: cpu
-              threads: 2
+              threads: 4
               ort_spinning: false
 
 # ============================================================

@@ -30,7 +30,7 @@ class GamepadBindingsTest(unittest.TestCase):
             ("LT+B", ""): ("policy", "walk_mjlab", 1000, "press"),
             ("LT+X", ""): ("policy", "dance_mode", 1000, "press"),
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
-            ("LT+UP", ""): ("policy", "protomotions", 1000, "press"),
+            ("LT+UP", ""): ("policy", "sonic_planner", 1000, "press"),
             ("LT+DOWN", ""): ("policy", "walk_rlgym", 1000, "press"),
             ("RT+A", "dance_mode"): ("action", "dance", 1000, "press"),
             ("RT+B", "dance_mode"): ("action", "kungfu", 1000, "press"),
@@ -40,8 +40,8 @@ class GamepadBindingsTest(unittest.TestCase):
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
             ("Y", "stand"): ("preset", "toggle", 0, "tap"),
-            ("RT+A", "sonic"): ("action", "dance_in_da_party", 1000, "press"),
-            ("RT+A", "protomotions"): ("action", "walk", 1000, "press"),
+            ("Y", "sonic_planner"): ("preset", "toggle", 0, "tap"),
+            ("RT+A", "sonic"): ("action", "standing", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
         }
         actual = {
@@ -57,14 +57,15 @@ class GamepadBindingsTest(unittest.TestCase):
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
         self.assertEqual(mapped, set(catalog["policy_names"]))
         self.assertEqual(len(mapped), 6)
+        self.assertNotIn("protomotions", catalog["policy_names"])
         self.assertEqual(catalog["default_policy"], "stand")
         for name, policy in catalog["policies"].items():
             if "policy_actions" not in policy:
                 self.assertTrue(policy["model_path"].endswith(".onnx"))
             self.assertEqual(policy["switch_group"], "full_body")
-            if name not in ("stand", "walk_mjlab", "walk_rlgym"):
+            if name not in ("stand", "walk_mjlab", "walk_rlgym", "sonic_planner"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
-        self.assertEqual(self.config["sonic_actions"]["action_names"], ["dance_in_da_party"])
+        self.assertEqual(self.config["sonic_actions"]["action_names"], ["standing"])
 
     def test_locomode_commands_and_motion_actions(self):
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
@@ -82,7 +83,7 @@ class GamepadBindingsTest(unittest.TestCase):
         dance = policies["dance_mode"]["policy_actions"]
         self.assertEqual(dance["idle_policy"], "stand")
         self.assertEqual(dance["action_names"], ["dance", "kungfu", "dance1", "packed", "jumps1"])
-        for mode in ("dance_mode", "protomotions"):
+        for mode in ("dance_mode",):
             actions = policies[mode]["policy_actions"]
             for key in actions["action_names"]:
                 target = actions["actions"][key]["policy"]

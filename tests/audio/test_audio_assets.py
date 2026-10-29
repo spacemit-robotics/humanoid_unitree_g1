@@ -21,7 +21,7 @@ class AudioAssetsTest(unittest.TestCase):
 
     def test_assets(self):
         prompts = json.loads((AUDIO / "prompts.json").read_text())
-        self.assertEqual(len(prompts), 11)
+        self.assertEqual(len(prompts), 21)
         self.assertEqual(prompts["gamepad_connected.wav"], "手柄已连接")
         self.assertEqual(prompts["gamepad_disconnected.wav"], "手柄已断开")
         self.assertEqual(prompts["control_acquired.wav"], "已接管控制权")
@@ -49,7 +49,18 @@ class AudioAssetsTest(unittest.TestCase):
         clips = config["clips"]
         for silent in ("state.HOME", "state.ZERO", "state.RL", "state.SAFETY"):
             self.assertNotIn(silent, clips)
-        self.assertFalse(any(key.startswith(("policy.", "action.")) for key in clips))
+        machine = yaml.safe_load((PACKAGE / "config/g1.yaml").read_text())
+        catalog = machine["rl_policy"]["onnx_infer"]
+        self.assertEqual({key.removeprefix("policy.") for key in clips if key.startswith("policy.")},
+                         set(catalog["policy_names"]))
+        actions = set(machine["sonic_actions"]["action_names"])
+        for name in catalog["policy_names"]:
+            actions.update(catalog["policies"][name].get("policy_actions", {}).get("action_names", []))
+        self.assertEqual({key.removeprefix("action.") for key in clips if key.startswith("action.")},
+                         actions)
+        self.assertNotIn("policy.protomotions", clips)
+        self.assertEqual(clips["policy.stand"], "locomotion_mode.wav")
+        self.assertEqual(clips["policy.sonic_planner"], "sonic_planner_mode.wav")
         self.assertEqual(clips["fault"], "fault.wav")
         self.assertEqual(config["fault_repeat_interval_s"], 15.0)
         self.assertEqual(clips["gamepad.connected"], "gamepad_connected.wav")

@@ -31,7 +31,7 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 ```bash
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial dance_mode --policies idle wait:20 idle action:dance finished action:kungfu finished
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode idle action:dance1 finished action:packed finished action:jumps1 finished
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode action:dance1 cancel finished protomotions idle action:walk finished sonic idle action:dance_in_da_party finished
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode action:dance1 cancel finished sonic idle action:standing finished
 ```
 
 `action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待
