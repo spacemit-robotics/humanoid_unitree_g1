@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--viewer", action="store_true")
     parser.add_argument("--initial", default="walk_mjlab")
     parser.add_argument("--transition-duration", type=float, help="Override live handoff duration for comparison")
+    parser.add_argument("--idle-policy", help="Override action-mode standby policy in the test copy")
     parser.add_argument("--policies", nargs="*", default=["stand", "walk_mjlab", "walk_rlgym", "walk_mjlab"])
     args = parser.parse_args()
     machine = Path(__file__).resolve().parents[2]
@@ -41,12 +42,20 @@ def main():
             if not 0 <= seconds <= 300:
                 parser.error("Wait must be between 0 and 300 seconds")
             extra_time += seconds
-        elif step not in available and step != "reference" and not step.startswith("action:"):
-            parser.error("Steps must be configured policies, reference, action:ID or wait:SECONDS")
+        elif (step not in available and step not in ("reference", "cancel", "idle", "finished")
+              and not step.startswith("action:")):
+            parser.error("Steps must be modes, reference, action:ID, cancel, idle, finished or wait:SECONDS")
     config["robot_base"]["robot_dir"] = str(machine)
     config["driver"]["backend"] = "mujoco"
     config["simulation"]["mujoco"]["viewer"] = args.viewer
     config["rl_policy"]["onnx_infer"]["default_policy"] = args.initial
+    if args.idle_policy:
+        definitions = config["rl_policy"]["onnx_infer"]["policies"]
+        if args.idle_policy not in definitions or "policy_actions" in definitions[args.idle_policy]:
+            parser.error("Standby override must name an ordinary policy")
+        for policy in definitions.values():
+            if "policy_actions" in policy:
+                policy["policy_actions"]["idle_policy"] = args.idle_policy
     if args.transition_duration is not None:
         if args.transition_duration < 0:
             parser.error("Transition duration must be nonnegative")

@@ -28,20 +28,19 @@ class GamepadBindingsTest(unittest.TestCase):
             ("R3", ""): ("ack", "", 0, "tap"),
             ("LT+A", ""): ("policy", "walk_mjlab", 1000, "press"),
             ("LT+B", ""): ("policy", "walk_rlgym", 1000, "press"),
-            ("LT+X", ""): ("policy", "stand", 1000, "press"),
+            ("LT+X", ""): ("policy", "dance_mode", 1000, "press"),
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
             ("LT+UP", ""): ("policy", "protomotions", 1000, "press"),
-            ("RT+A", ""): ("policy", "dance", 1000, "press"),
-            ("RT+B", ""): ("policy", "kungfu", 1000, "press"),
-            ("RT+X", ""): ("policy", "tracking", 1000, "press"),
-            ("RT+Y", ""): ("policy", "tracking_packed", 1000, "press"),
-            ("RT+UP", ""): ("policy", "tracking_wbt_jumps1", 1000, "press"),
+            ("LT+DOWN", ""): ("policy", "stand", 1000, "press"),
+            ("RT+A", "dance_mode"): ("action", "dance", 1000, "press"),
+            ("RT+B", "dance_mode"): ("action", "kungfu", 1000, "press"),
+            ("RT+X", "dance_mode"): ("action", "dance1", 1000, "press"),
+            ("RT+Y", "dance_mode"): ("action", "packed", 1000, "press"),
+            ("RT+UP", "dance_mode"): ("action", "jumps1", 1000, "press"),
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
-            ("L3", "tracking"): ("reference", "", 1000, "press"),
-            ("L3", "tracking_packed"): ("reference", "", 1000, "press"),
-            ("L3", "tracking_wbt_jumps1"): ("reference", "", 1000, "press"),
-            ("L3", "sonic"): ("action", "dance_in_da_party", 1000, "press"),
+            ("RT+A", "sonic"): ("action", "dance_in_da_party", 1000, "press"),
+            ("RT+A", "protomotions"): ("action", "walk", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
         }
         actual = {
@@ -56,14 +55,34 @@ class GamepadBindingsTest(unittest.TestCase):
         catalog = self.config["rl_policy"]["onnx_infer"]
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
         self.assertEqual(mapped, set(catalog["policy_names"]))
-        self.assertEqual(mapped, set(catalog["policies"]))
+        self.assertEqual(len(mapped), 6)
         self.assertEqual(catalog["default_policy"], "walk_mjlab")
         for name, policy in catalog["policies"].items():
-            self.assertTrue(policy["model_path"].endswith(".onnx"))
+            if "policy_actions" not in policy:
+                self.assertTrue(policy["model_path"].endswith(".onnx"))
             self.assertEqual(policy["switch_group"], "full_body")
             if name not in ("walk_mjlab", "walk_rlgym"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
         self.assertEqual(self.config["sonic_actions"]["action_names"], ["dance_in_da_party"])
+
+    def test_modes_wait_for_explicit_actions(self):
+        catalog = self.config["rl_policy"]["onnx_infer"]
+        policies = catalog["policies"]
+        for mode in catalog["policy_names"]:
+            self.assertIn("运控", policies[mode]["display_name"])
+        dance = policies["dance_mode"]["policy_actions"]
+        self.assertEqual(dance["idle_policy"], "stand")
+        self.assertEqual(dance["action_names"], ["dance", "kungfu", "dance1", "packed", "jumps1"])
+        for mode in ("dance_mode", "protomotions"):
+            actions = policies[mode]["policy_actions"]
+            for key in actions["action_names"]:
+                target = actions["actions"][key]["policy"]
+                self.assertNotIn(target, catalog["policy_names"])
+                self.assertNotIn("prerequisite", policies[target])
+                self.assertNotIn("return_policy", policies[target])
+            bound = {b["value"] for b in self.bindings
+                     if b["operation"] == "action" and b.get("policy") == mode}
+            self.assertEqual(bound, set(actions["action_names"]))
 
     def test_unique_yaml_keys(self):
         package = Path(__file__).resolve().parents[1]

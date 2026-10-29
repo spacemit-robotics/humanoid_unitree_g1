@@ -1,35 +1,45 @@
-# 策略与动作
+# 运控模式与动作
 
-`config/g1.yaml` 注册全部策略，默认 `walk_mjlab`。界面显示中文功能名，
-配置和日志使用下表 ID。权重与参考资源单独放入 `policy/`，不随源码提交；
-`download_models_g1.sh` 用于获取模型库中已发布的资源。
+`config/g1.yaml` 的 `policy_names` 定义六个可选模式，默认常规运控（MJLab）。
+底层模型与动作资源放在 `policy/`，不随源码提交；
+`download_models_g1.sh` 获取模型库中已发布的资源。
 
-| 功能 | 策略 ID | 模型路径（相对机型目录） | 播放方式 |
+| 模式 | 模式 ID | 进入模式后的行为 | 模式内动作 |
 | --- | --- | --- | --- |
-| 行走 · MjLab | `walk_mjlab` | `policy/walk_mjlab/policy.onnx` | 速度控制，零速站立 |
-| 行走 · RLGym | `walk_rlgym` | `policy/motion/motion.onnx` | 速度控制，零速仍有步态 |
-| 站立 | `stand` | `policy/stand/stand_29dof.onnx` | 零速度全身站立 |
-| 动作跟踪 · 舞蹈 | `dance` | `policy/dance/dance_0605.onnx` | 先运行 stand 2 秒，再播放内置动作 |
-| 动作跟踪 · 功夫 | `kungfu` | `policy/kungfu/kungfu_0609.onnx` | 先运行 stand 2 秒，再播放内置动作 |
-| 动作跟踪 · Dance 1 | `tracking` | `policy/tracking/policy.onnx` | 进入后保持首帧，手动开始 |
-| 动作跟踪 · Packed | `tracking_packed` | `policy/tracking_packed/policy_packed_0430.onnx` | 进入后保持首帧，手动开始 |
-| 动作跟踪 · Jumps 1 | `tracking_wbt_jumps1` | `policy/tracking_wbt_jumps1/policy.onnx` | 进入后保持首帧，手动开始 |
-| ProtoMotions | `protomotions` | `policy/protomotions/unified_pipeline.onnx` | 自动播放配套参考 |
-| SONIC | `sonic` | `policy/sonic/sonic_release_unified.onnx` | 进入后保持默认首帧，从动作目录选择播放 |
+| 常规运控（MJLab） | `walk_mjlab` | 零速站立，收到速度后行走 | 无 |
+| 常规运控（RL Gym） | `walk_rlgym` | 零速仍踏步，收到速度后行走 | 无 |
+| 站立运控 | `stand` | 零速度全身站立 | 无 |
+| 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
+| SONIC 运控 | `sonic` | 保持默认动作首帧 | Dance in da Party |
+| ProtoMotions 运控 | `protomotions` | 使用 stand 站立待命 | 行走动作 |
 
-完整路径以 YAML 为准。SONIC 的 `sonic_actions` 是同一模型下的动作目录，
-添加动作时增加目录条目即可；不需要复制 SONIC 策略或修改 common。
-其他独立训练模型仍按不同策略注册，不把它们伪装成同一模型的参考数据。
+舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
+才后台加载对应模型并交接；动作结束或取消后回到该模式的 stand，等待下一条请求。
+选模式、进入 RL、重复收到同一条请求，都不会自动开始或重复播放舞蹈。
 
-RL 内选择同组策略时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
-普通站走策略在零速有效推理帧交接；正在播放的定时动作等到末帧。
-SONIC 会先收回到待命参考。完成的有限动作按 `return_policy` 返回 stand。
-Dance 1 和 Packed 的参考长 131.48 秒，Jumps 1 长 244.44 秒；播放中切换需等待该段结束。
-机型交接等待上限为 300 秒，模型加载失败或超时会报告失败并保留当前策略。
-HOME/ZERO 中不切换策略，仍遵守 DAMP→HOME→ZERO→RL 的准备顺序。
+| 动作 | 动作 ID | 执行策略 | 模型及参考资源（相对机型目录） |
+| --- | --- | --- | --- |
+| 舞蹈 | `dance` | `dance` | `policy/dance/dance_0605.onnx`，内置 18 秒动作 |
+| 功夫 | `kungfu` | `kungfu` | `policy/kungfu/kungfu_0609.onnx`，内置 18 秒动作 |
+| Dance 1 | `dance1` | `tracking` | `policy/tracking/`，配套参考 131.48 秒 |
+| Packed | `packed` | `tracking_packed` | `policy/tracking_packed/`，配套参考 131.48 秒 |
+| Jumps 1 | `jumps1` | `tracking_wbt_jumps1` | `policy/tracking_wbt_jumps1/`，配套参考 244.44 秒 |
+| 行走动作 | `walk` | `protomotions_walk` | `policy/protomotions/`，配套参考 4.98 秒 |
+| Dance in da Party | `dance_in_da_party` | `sonic` | `policy/sonic/`，配套参考 9.94 秒 |
 
-输出过渡由各策略 `policy_switch.transition_duration` 配置，位置与增益同步变化。
-内置定时舞蹈不叠加输出延迟，依靠前置站立策略准备；模型时间、历史观测和动作映射保持各自协议。
+前六项是不同模型，common 按 `policy_actions.actions.<ID>.policy` 调度；
+SONIC 使用同一模型的 `sonic_actions` 参考目录。两者在客户端都采用“选模式，再触发动作”。
+新增动作只需配置对应目录和资源，不在 common 中写机型名或固定动作数量。
+
+RL 内选择同组模式时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
+普通站走策略在零速有效推理帧交接；定时动作播放中选择其他模式会等待末帧。
+需要提前结束时先取消动作，准备好待命策略后从当前有效目标交接，位置与增益同步过渡。
+SONIC 取消由自身参考过渡处理。模型加载失败保持当前控制并显示动作失败。
+机型交接等待上限为 300 秒，HOME/ZERO 中不切换模式。
+
+各执行策略的观测、历史、动作尺度与增益独立保留。
+内置定时舞蹈不叠加输出过渡延迟；回待命使用 stand 的 0.5 秒目标与增益过渡。
+进入模式的 ZERO 姿态也来自该模式的待命策略。
 
 台阶场景启动命令为 `run_g1.sh --sim --stairs`。它仅增加仿真地形，不改变模型能力；
 当前行走策略不是专门的越障模型。

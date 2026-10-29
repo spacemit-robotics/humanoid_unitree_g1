@@ -114,20 +114,19 @@ operator_gamepad:
     - {buttons: [R3], operation: ack, trigger: tap}
     - {buttons: [LT, A], operation: policy, value: walk_mjlab, hold_ms: 1000}
     - {buttons: [LT, B], operation: policy, value: walk_rlgym, hold_ms: 1000}
-    - {buttons: [LT, X], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [LT, X], operation: policy, value: dance_mode, hold_ms: 1000}
     - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
     - {buttons: [LT, UP], operation: policy, value: protomotions, hold_ms: 1000}
-    - {buttons: [RT, A], operation: policy, value: dance, hold_ms: 1000}
-    - {buttons: [RT, B], operation: policy, value: kungfu, hold_ms: 1000}
-    - {buttons: [RT, X], operation: policy, value: tracking, hold_ms: 1000}
-    - {buttons: [RT, Y], operation: policy, value: tracking_packed, hold_ms: 1000}
-    - {buttons: [RT, UP], operation: policy, value: tracking_wbt_jumps1, hold_ms: 1000}
+    - {buttons: [LT, DOWN], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [RT, A], operation: action, value: dance, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, B], operation: action, value: kungfu, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, X], operation: action, value: dance1, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, Y], operation: action, value: packed, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, UP], operation: action, value: jumps1, hold_ms: 1000, policy: dance_mode}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
-    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking}
-    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking_packed}
-    - {buttons: [L3], operation: reference, hold_ms: 1000, policy: tracking_wbt_jumps1}
-    - {buttons: [L3], operation: action, value: dance_in_da_party, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, A], operation: action, value: dance_in_da_party, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, A], operation: action, value: walk, hold_ms: 1000, policy: protomotions}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -277,13 +276,12 @@ rl_policy:
   
   onnx_infer:
     # Each entry retains its own observation/action contract and controller gains.
-    policy_names: [walk_mjlab, walk_rlgym, stand, dance, kungfu, tracking,
-                   tracking_packed, tracking_wbt_jumps1, sonic, protomotions]
+    policy_names: [walk_mjlab, walk_rlgym, stand, dance_mode, sonic, protomotions]
     default_policy: walk_mjlab
 
     policies:
       walk_rlgym:
-        display_name: 行走 · RL Gym
+        display_name: 常规运控（RL Gym）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         model_path: "policy/motion/motion.onnx"
@@ -349,7 +347,7 @@ rl_policy:
         max_pitch: 0.7
 
       walk_mjlab:
-        display_name: 行走 · MJLab
+        display_name: 常规运控（MJLab）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # Unitree 官方 unitree_rl_mjlab G1 velocity 示例模型：29DOF、50Hz、零命令站立。
@@ -431,11 +429,10 @@ rl_policy:
         entry_target_transition_duration: 0.0
 
       dance:
-        display_name: 动作跟踪 · 舞蹈
+        display_name: 舞蹈
         switch_group: full_body
         # The motion clock starts with the first inference; do not lag its targets.
         policy_switch: {transition_duration: 0.0}
-        return_policy: stand
         model_path: "policy/dance/dance_0605.onnx"
         model_io:
           inputs:
@@ -484,16 +481,11 @@ rl_policy:
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
-        # 切到 dance 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
-        prerequisite:
-          policy: stand
-          duration: 2.0
 
       kungfu:
-        display_name: 动作跟踪 · 功夫
+        display_name: 功夫
         switch_group: full_body
         policy_switch: {transition_duration: 0.0}
-        return_policy: stand
         model_path: "policy/kungfu/kungfu_0609.onnx"
         model_io:
           inputs:
@@ -542,13 +534,9 @@ rl_policy:
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
-        # 切到 kungfu 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
-        prerequisite:
-          policy: stand
-          duration: 2.0
 
       stand:
-        display_name: 站立
+        display_name: 站立运控
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
@@ -627,11 +615,36 @@ rl_policy:
         # Blend the first policy targets from ZERO over 0.5 s.
         entry_target_transition_duration: 0.5
 
+      dance_mode:
+        display_name: 舞蹈运控
+        switch_group: full_body
+        command:
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
+        policy_actions:
+          idle_policy: stand
+          action_names: [dance, kungfu, dance1, packed, jumps1]
+          actions:
+            dance: {display_name: 舞蹈, policy: dance}
+            kungfu: {display_name: 功夫, policy: kungfu}
+            dance1: {display_name: Dance 1, policy: tracking}
+            packed: {display_name: Packed, policy: tracking_packed}
+            jumps1: {display_name: Jumps 1, policy: tracking_wbt_jumps1}
+
+      protomotions:
+        display_name: ProtoMotions 运控
+        switch_group: full_body
+        command:
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
+        policy_actions:
+          idle_policy: stand
+          action_names: [walk]
+          actions:
+            walk: {display_name: 行走动作, policy: protomotions_walk}
+
       tracking:
-        display_name: 动作跟踪 · Dance 1
+        display_name: Dance 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        return_policy: stand
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
         model_io:
@@ -643,7 +656,7 @@ rl_policy:
           type: mjlab
           reference_file: "policy/tracking/dance1_subject2.npz"
           motion_fps: 50
-          start_mode: manual  # RL 接管后保持首帧，HMI 主页面按 G 开始动作
+          start_mode: manual  # 由舞蹈运控的动作请求开始播放
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso: yaw/roll/pitch
           anchor_yaw_align: true
@@ -710,10 +723,9 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_packed:
-        display_name: 动作跟踪 · Packed
+        display_name: Packed
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        return_policy: stand
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
         # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
@@ -787,10 +799,9 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_wbt_jumps1:
-        display_name: 动作跟踪 · Jumps 1
+        display_name: Jumps 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        return_policy: stand
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
@@ -875,11 +886,10 @@ rl_policy:
         max_roll: 2.0
         max_pitch: 2.0
 
-      protomotions:
-        display_name: ProtoMotions
+      protomotions_walk:
+        display_name: 行走动作
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        return_policy: stand
         # ProtoMotions G1 unified pipeline：5.64M 参数 MLP，输出为绝对 PD 目标。
         command:
           init: [0, 0, 0]
@@ -945,7 +955,7 @@ rl_policy:
         max_pitch: 2.0
 
       sonic:
-        display_name: SONIC
+        display_name: SONIC 运控
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。

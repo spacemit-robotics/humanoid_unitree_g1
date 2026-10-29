@@ -26,13 +26,14 @@ RT+动作键使用过后，松开动作键但仍按住 RT，不会补发取消�
 | RB | 长按 1 秒 | ZERO |
 | LB + RB | 长按 1 秒 | RL |
 | R3（右摇杆按下） | 点按 | 确认故障，不自动上电或切 RL |
-| LT + A/B/X | 长按 1 秒 | 分别选择 MjLab 行走／RLGym 行走／站立 |
-| LT + Y/↑ | 长按 1 秒 | 分别选择 SONIC／ProtoMotions |
-| RT + A/B | 长按 1 秒 | 分别选择内置舞蹈／功夫 |
-| RT + X/Y/↑ | 长按 1 秒 | 分别选择 Dance 1／Packed／Jumps 1 动作跟踪 |
+| LT + A/B | 长按 1 秒 | 分别选择常规运控（MJLab）／常规运控（RL Gym） |
+| LT + X | 长按 1 秒 | 选择舞蹈运控，进入后站立等待动作 |
+| LT + Y/↑/↓ | 长按 1 秒 | 分别选择 SONIC 运控／ProtoMotions 运控／站立运控 |
+| RT + A/B | 长按 1 秒 | 舞蹈运控：分别触发舞蹈／功夫 |
+| RT + X/Y/↑ | 长按 1 秒 | 舞蹈运控：分别触发 Dance 1／Packed／Jumps 1 |
+| RT + A | 长按 1 秒 | SONIC 运控：触发 Dance in da Party；ProtoMotions 运控：触发行走动作 |
 | Y | 点按 | 两套行走策略：慢速／快速切换 |
-| L3（左摇杆按下） | 长按 1 秒 | 三套动作跟踪开始参考；SONIC 播放 Dance in da Party |
-| RT | 长按 1 秒 | 取消支持交互取消的动作，例如 SONIC；不强行中断内置定时动作 |
+| RT | 长按 1 秒 | 取消当前动作，交接回本模式待命，不退出 RL |
 
 M、G 圆键、右摇杆上下未绑定机器人功能；保留手柄自身设置、开关机等功能。
 BACK+START 不再接管，避免与手柄自身长按切换协议冲突。
@@ -42,7 +43,10 @@ BACK+START 不再接管，避免与手柄自身长按切换协议冲突。
 慢档上限前后 0.3 m/s、横移 0.3 m/s、转向 0.5 rad/s；
 快档仅前进增至 0.5 m/s，倒退仍为 0.3 m/s，横移和转向不变。
 两套行走策略的 `command.limits.min_vx: -0.3` 同时约束手柄、网页与 TUI。
-使用配置的加减速度平滑；站立和动作跟踪不接受移动速度。
+使用配置的加减速度平滑；站立运控及各动作模式不接受移动速度。
+
+舞蹈和 ProtoMotions 运控选择后不会播放动作；动作结束仍留在原模式，保持站立等待。
+动作按键仅在对应模式有效，长按保持不会循环重播。
 
 同组策略可在 RL 中切换，当前策略持续控制并等待目标模型准备和动作交接点。
 切换中的请求不叠加；定时动作到末帧交接，SONIC 先收回。状态切换仍遵守 DAMP→HOME→ZERO→RL。
@@ -68,7 +72,7 @@ HOME 完成再 ZERO，ZERO 准备完成再 RL；过早触发会拒绝，松开�
 output/staging/bin/hmi_gamepad application/native/humanoid_unitree_g1/config/g1.yaml --dry-run --policy walk_mjlab
 ```
 
-dry-run 不连接 HMI、不发控制命令或震动。用 `--policy sonic` 检查动作绑定，
+dry-run 不连接 HMI、不发控制命令或震动。用 `--policy dance_mode` 检查舞蹈绑定，
 该参数不切换实际机器人模式。仅有设备键码不代表外壳按键映射正确，应逐键确认。
 
 震动使用 USB DS4 output report，在设备身份和报告长度核对后发送。

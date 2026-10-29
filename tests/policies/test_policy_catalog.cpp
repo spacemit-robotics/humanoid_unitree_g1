@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include <yaml-cpp/yaml.h>
+
 #include "policy_adapter/policy_adapter.h"
 #include "rl_service.h"
 #include "robot_base.h"
@@ -20,8 +22,10 @@ int main(int argc, char **argv) {
     try {
         const auto yaml = robot_base::YamlFile::Load(argv[1]);
         const auto root = yaml.ToAbsPath(yaml.Read<std::string>("robot_base.robot_dir").value());
-        const auto names = yaml.Read<std::vector<std::string>>("rl_policy.onnx_infer.policy_names").value();
-        for (const auto &name : names) {
+        const auto policies = YAML::LoadFile(argv[1])["rl_policy"]["onnx_infer"]["policies"];
+        for (const auto &entry : policies) {
+            if (!entry.second["model_path"]) continue;
+            const auto name = entry.first.as<std::string>();
             const auto config = rl_policy::LoadPolicyConfigFromYaml(argv[1], name, root);
             const auto adapter_config = behavior_manager::policy_adapter::LoadConfig(argv[1], name, root);
             auto adapter = adapter_config.Enabled()

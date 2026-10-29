@@ -48,15 +48,16 @@ HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态；等待当�
 
 | 显示名称 | 策略键 | 执行方式 |
 | --- | --- | --- |
-| 行走 · MJLab | `walk_mjlab` | 29 轴行走，零命令站立；默认策略 |
-| 行走 · RL Gym | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
-| 站立 | `stand` | 独立站立策略，不接收移动命令 |
-| 动作跟踪 · 舞蹈／功夫 | `dance`、`kungfu` | 动作内置于网络，先运行站立前置策略 |
-| 动作跟踪 · Dance 1／Packed／Jumps 1 | `tracking`、`tracking_packed`、`tracking_wbt_jumps1` | 每个模型使用配套参考动作 |
-| SONIC | `sonic` | 同一模型通过动作目录选择参考动作 |
-| ProtoMotions | `protomotions` | 使用配套参考序列的全身跟踪 |
+| 常规运控（MJLab） | `walk_mjlab` | 29 轴行走，零命令站立；默认模式 |
+| 常规运控（RL Gym） | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
+| 站立运控 | `stand` | 独立站立策略，不接收移动命令 |
+| 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
+| SONIC 运控 | `sonic` | 进入后保持待命参考；从动作列表选择播放 |
+| ProtoMotions 运控 | `protomotions` | 进入后站立待命；从动作列表触发行走参考动作 |
 
-策略目录、切换组、前置策略及动作结束后的返回策略均在 YAML 中配置。
+模式入口和动作目录均在 YAML 中配置。`policy_names` 只列界面可选的模式；
+`policy_actions` 为模式配置待命策略与动作模型，选择模式不启动动作。
+动作结束或取消后回到该模式的待命策略，不切换到另一个模式。
 RL 内切换由 common 后台准备目标模型，保留当前控制；准备成功并满足交出条件后，
 用目标策略的 `policy_switch.transition_duration` 同步过渡位置和 KP/KD。
 加载失败保留当前策略。模型输入、动作尺度和增益不跨策略复用。

@@ -28,17 +28,18 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 测试其他策略：
 
 ```bash
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance stand kungfu stand tracking stand tracking_packed stand tracking_wbt_jumps1 stand sonic stand protomotions wait:6 stand
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies tracking reference stand tracking_packed reference stand
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies sonic action:dance_in_da_party wait:12 stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial dance_mode --policies idle wait:20 idle action:dance finished action:kungfu finished
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode idle action:dance1 finished action:packed finished action:jumps1 finished
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode action:dance1 cancel finished protomotions idle action:walk finished sonic idle action:dance_in_da_party finished
 ```
 
-`reference` 开始手动参考，`action:<ID>` 启动动作目录中的条目，`wait:<秒数>` 保持运行。
-参考动作播放中请求切换会等到末帧；Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒。
-因此“选择后保持首帧”和“播放完整动作”的测试耗时不同。
+`action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待
+动作结束并检查仍在原模式；`cancel` 取消动作；`wait:<秒数>` 保持运行。
+Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒，完整播放回归需要等待相应时长。
 
 `--viewer` 显示仿真窗口，`--initial <ID>` 选择初始策略。
 `--transition-duration <秒数>` 仅覆盖测试副本中的交接时长，用于对比；不修改机型配置。
+`--idle-policy <策略 ID>` 仅替换测试副本的动作模式待命策略，用于交接对比。
 结果及完整进程日志存于脚本打印的 `output/g1_policy_sim_*` 目录。
 
 手动查看切换效果：
@@ -48,6 +49,6 @@ source build/envsetup.sh
 run_g1.sh --sim
 ```
 
-先按 DAMP→HOME→ZERO→RL 进入默认行走策略，再从策略列表选择同组策略。
-MJLab 跟踪策略进入后等待参考启动，SONIC 从动作列表选择播放。
+先按 DAMP→HOME→ZERO→RL 进入默认常规运控，再选择同组模式。
+舞蹈运控进入后站立待命，TUI 主页面按 A 打开动作列表，再选择开始；网页从动作列表触发。
 实机的机械范围、接线、IMU 安装与落地稳定性另行验收。

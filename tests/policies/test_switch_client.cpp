@@ -27,6 +27,7 @@ void Wait(operator_service::Client &client, double seconds,
     do {
         const auto status = client.LatestStatus();
         if (!client.Connected()) throw std::runtime_error("operator connection lost");
+        if (status.age_ms > 2000) throw std::runtime_error("control status stopped updating");
         if (status.fault.latched) throw std::runtime_error(status.fault.source + "/" +
             status.fault.code + ": " + status.fault.detail);
         if (done && done(status)) return;
@@ -70,10 +71,36 @@ int main(int argc, char **argv) {
         Wait(client, 5);
         for (int index = 3; index < argc; ++index) {
             const std::string target = argv[index];
+            if (target == "idle" || target == "finished") {
+                const auto mode = client.LatestStatus().policy;
+                Wait(client, target == "finished" ? 290 : 1, [&](const auto &s) {
+                    if (s.policy != mode || s.state != "RL") throw std::runtime_error("action changed mode/FSM");
+                    if (s.interaction_phase == "REJECTED") throw std::runtime_error("action was rejected");
+                    return s.interaction_phase == (target == "idle" ? "IDLE" : "FINISHED");
+                });
+                Wait(client, 3);
+                const auto s = client.LatestStatus();
+                if (s.policy != mode || (s.interaction_phase != "IDLE" && s.interaction_phase != "FINISHED"))
+                    throw std::runtime_error("standby restarted an action without a request");
+                std::cout << "PASS " << target << " -> " << mode << std::endl;
+                continue;
+            }
+            if (target == "cancel") {
+                Check(client.CancelInteraction());
+                Wait(client, 8, [](const auto &s) { return s.interaction_phase == "FINISHED"; });
+                std::cout << "PASS cancel -> " << client.LatestStatus().policy << std::endl;
+                continue;
+            }
             if (target == "reference" || target.rfind("action:", 0) == 0) {
                 Check(target == "reference" ? client.StartReference() :
                     client.StartInteraction(target.substr(7)));
-                Wait(client, 5);
+                if (target != "reference") {
+                    Wait(client, 10, [](const auto &s) {
+                        if (s.interaction_phase == "REJECTED") throw std::runtime_error("action was rejected");
+                        return s.interaction_phase == "PLAYING" || s.interaction_phase == "BLEND_IN";
+                    });
+                }
+                Wait(client, 2);
                 std::cout << "PASS playback -> " << target << std::endl;
                 continue;
             }
