@@ -1,14 +1,14 @@
 # 运控模式与动作
 
-`config/g1.yaml` 的 `policy_names` 定义六个可选模式，默认常规运控（MJLab）。
+`config/g1.yaml` 的 `policy_names` 定义六个可选模式，默认常规运控（LocoMode）。
 底层模型与动作资源放在 `policy/`，不随源码提交；
 `download_models_g1.sh` 获取模型库中已发布的资源。
 
 | 模式 | 模式 ID | 进入模式后的行为 | 模式内动作 |
 | --- | --- | --- | --- |
+| 常规运控（LocoMode） | `stand` | 零速站立，收到速度后行走 | 无 |
 | 常规运控（MJLab） | `walk_mjlab` | 零速站立，收到速度后行走 | 无 |
 | 常规运控（RL Gym） | `walk_rlgym` | 零速仍踏步，收到速度后行走 | 无 |
-| 站立运控 | `stand` | 零速度全身站立 | 无 |
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 保持默认动作首帧 | Dance in da Party |
 | ProtoMotions 运控 | `protomotions` | 使用 stand 站立待命 | 行走动作 |
@@ -16,6 +16,8 @@
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
 才后台加载对应模型并交接；动作结束或取消后回到该模式的 stand，等待下一条请求。
 选模式、进入 RL、重复收到同一条请求，都不会自动开始或重复播放舞蹈。
+`stand` 是 LocoMode 站走模型的兼容策略键。独立选择时接收速度；
+用作舞蹈或 ProtoMotions 待命时，由所属模式的零速度限幅保持站立。
 
 | 动作 | 动作 ID | 执行策略 | 模型及参考资源（相对机型目录） |
 | --- | --- | --- | --- |

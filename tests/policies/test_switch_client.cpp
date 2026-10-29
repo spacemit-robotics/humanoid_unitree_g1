@@ -5,32 +5,40 @@
  * @brief Exercise live policy selection through an isolated simulation operator service.
  */
 #include <chrono>
+#include <algorithm>
 #include <cmath>
+#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <thread>
 
 #include <yaml-cpp/yaml.h>
 #include "operator_client.h"
+#include "simulation_monitor.h"
 
 namespace {
 using Clock = std::chrono::steady_clock;
+SimulationMonitor *monitor = nullptr;
 void Check(const operator_service::Reply &reply) {
     if (!reply.ok) throw std::runtime_error(reply.code + ": " + reply.message);
 }
 void Wait(operator_service::Client &client, double seconds,
-        const std::function<bool(const operator_service::Status &)> &done = {}) {
+        const std::function<bool(const operator_service::Status &)> &done = {},
+        const std::function<void()> &tick = {}) {
     const auto start = Clock::now();
     auto renewed = start - std::chrono::seconds(1);
     do {
         const auto status = client.LatestStatus();
+        if (monitor) monitor->Poll(status.policy);
         if (!client.Connected()) throw std::runtime_error("operator connection lost");
         if (status.age_ms > 2000) throw std::runtime_error("control status stopped updating");
         if (status.fault.latched) throw std::runtime_error(status.fault.source + "/" +
             status.fault.code + ": " + status.fault.detail);
         if (done && done(status)) return;
+        if (tick) tick();
         if (status.owns_control && Clock::now() - renewed > std::chrono::milliseconds(150)) {
             Check(client.RenewControl());
             renewed = Clock::now();
@@ -56,6 +64,9 @@ int main(int argc, char **argv) {
         std::string error;
         if (!client.Connect(connection, &error)) throw std::runtime_error(error);
         Wait(client, 20, [](const auto &s) { return s.online && s.hmi_connected; });
+        SimulationMonitor observer(config,
+            (std::filesystem::path(argv[1]).parent_path() / "simulation_state.csv").string());
+        monitor = &observer;
         Check(client.AcquireControl());
         const auto state = [&](const std::string &name) {
             Check(client.RequestState(name));
@@ -71,6 +82,42 @@ int main(int argc, char **argv) {
         Wait(client, 5);
         for (int index = 3; index < argc; ++index) {
             const std::string target = argv[index];
+            if (target.rfind("velocity:", 0) == 0) {
+                auto parameters = target.substr(9);
+                std::replace(parameters.begin(), parameters.end(), ',', ' ');
+                std::istringstream values(parameters);
+                operator_service::Velocity velocity;
+                double seconds = 0;
+                if (!(values >> velocity.vx >> velocity.vy >> velocity.wz >> seconds) ||
+                    !std::isfinite(seconds) || seconds <= 0 || seconds > 60)
+                    throw std::runtime_error("velocity step requires vx,vy,wz,seconds (0 < seconds <= 60)");
+                const auto before = observer.State();
+                auto refreshed = Clock::now() - std::chrono::seconds(1);
+                Wait(client, seconds, {}, [&] {
+                    if (Clock::now() - refreshed >= std::chrono::milliseconds(50)) {
+                        Check(client.SetVelocity(velocity));
+                        refreshed = Clock::now();
+                    }
+                });
+                Check(client.SetVelocity({}));
+                const auto after = observer.State();
+                const double x = after.base_pos[0] - before.base_pos[0];
+                const double y = after.base_pos[1] - before.base_pos[1];
+                const double yaw = before.rpy[2];
+                const double forward = std::cos(yaw) * x + std::sin(yaw) * y;
+                const double lateral = -std::sin(yaw) * x + std::cos(yaw) * y;
+                const double turn = std::remainder(after.rpy[2] - yaw, 2 * std::acos(-1));
+                std::cout << "MOTION " << target << " dx=" << forward << " dy=" << lateral
+                    << " dyaw=" << turn << " height=" << after.base_pos[2] << std::endl;
+                if (after.base_pos[2] < 0.5 ||
+                    (velocity.vx != 0 && forward * velocity.vx < 0.1 * seconds * velocity.vx * velocity.vx) ||
+                    (velocity.vy != 0 && lateral * velocity.vy < 0.1 * seconds * velocity.vy * velocity.vy) ||
+                    (velocity.wz != 0 && turn * velocity.wz < 0.1 * seconds * velocity.wz * velocity.wz))
+                    throw std::runtime_error("velocity command did not produce motion in the requested direction");
+                Wait(client, 3);
+                std::cout << "PASS motion and stop -> " << client.LatestStatus().policy << std::endl;
+                continue;
+            }
             if (target == "idle" || target == "finished") {
                 const auto mode = client.LatestStatus().policy;
                 Wait(client, target == "finished" ? 290 : 1, [&](const auto &s) {

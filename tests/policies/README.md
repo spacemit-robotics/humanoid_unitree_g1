@@ -21,6 +21,7 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 ```
 
 启动独立的 driver、control、operator，自动完成 DAMP→HOME→ZERO→RL，
+默认进入常规运控（LocoMode），零速度站立，非零速度行走。
 然后依次切换 stand、walk_mjlab、walk_rlgym、walk_mjlab。
 每次交接保持 RL，检查请求完成、故障状态和切换后 5 秒运行。
 测试使用独立共享内存、端口、日志目录，禁用手柄和音频，退出时仅停止自己启动的进程。
@@ -37,9 +38,24 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 动作结束并检查仍在原模式；`cancel` 取消动作；`wait:<秒数>` 保持运行。
 Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒，完整播放回归需要等待相应时长。
 
+行走、停止和舞蹈待命交接：
+
+```bash
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies velocity:0.3,0,0,5 velocity:-0.3,0,0,5 velocity:0,0.3,0,5 velocity:0,-0.3,0,5 velocity:0,0,0.5,5 velocity:0,0,-0.5,5 wait:20
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies velocity:0.3,0,0,5 dance_mode idle wait:20 action:dance1 wait:10 cancel finished stand idle
+```
+
+`velocity:vx,vy,wz,秒数` 持续发送速度，检查实际位移或转角方向，然后归零并观察 3 秒。
+`MOTION` 行给出机器人实际运动；`simulation_state.csv` 记录位置、姿态和速度。
+LocoMode 在 0.2 m/s 前进指令下可能仅调整平衡姿态，0.3 m/s 可用于检查起步。
+
+进入舞蹈模式不会自动开始动作。旧 `dance` 的完整播放仍存在仿真失稳，
+不要把模式切入或模型接口测试通过当作这个动作的落地验收。
+
 `--viewer` 显示仿真窗口，`--initial <ID>` 选择初始策略。
 `--transition-duration <秒数>` 仅覆盖测试副本中的交接时长，用于对比；不修改机型配置。
 `--idle-policy <策略 ID>` 仅替换测试副本的动作模式待命策略，用于交接对比。
+`--policy-trace` 记录逐帧观测、动作及关节目标，用于与模型配套控制计算对照。
 结果及完整进程日志存于脚本打印的 `output/g1_policy_sim_*` 目录。
 
 手动查看切换效果：

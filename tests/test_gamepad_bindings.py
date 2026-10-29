@@ -26,12 +26,12 @@ class GamepadBindingsTest(unittest.TestCase):
             ("RB", ""): ("state", "ZERO", 1000, "press"),
             ("LB+RB", ""): ("state", "RL", 1000, "press"),
             ("R3", ""): ("ack", "", 0, "tap"),
-            ("LT+A", ""): ("policy", "walk_mjlab", 1000, "press"),
-            ("LT+B", ""): ("policy", "walk_rlgym", 1000, "press"),
+            ("LT+A", ""): ("policy", "stand", 1000, "press"),
+            ("LT+B", ""): ("policy", "walk_mjlab", 1000, "press"),
             ("LT+X", ""): ("policy", "dance_mode", 1000, "press"),
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
             ("LT+UP", ""): ("policy", "protomotions", 1000, "press"),
-            ("LT+DOWN", ""): ("policy", "stand", 1000, "press"),
+            ("LT+DOWN", ""): ("policy", "walk_rlgym", 1000, "press"),
             ("RT+A", "dance_mode"): ("action", "dance", 1000, "press"),
             ("RT+B", "dance_mode"): ("action", "kungfu", 1000, "press"),
             ("RT+X", "dance_mode"): ("action", "dance1", 1000, "press"),
@@ -39,6 +39,7 @@ class GamepadBindingsTest(unittest.TestCase):
             ("RT+UP", "dance_mode"): ("action", "jumps1", 1000, "press"),
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
+            ("Y", "stand"): ("preset", "toggle", 0, "tap"),
             ("RT+A", "sonic"): ("action", "dance_in_da_party", 1000, "press"),
             ("RT+A", "protomotions"): ("action", "walk", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
@@ -56,14 +57,22 @@ class GamepadBindingsTest(unittest.TestCase):
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
         self.assertEqual(mapped, set(catalog["policy_names"]))
         self.assertEqual(len(mapped), 6)
-        self.assertEqual(catalog["default_policy"], "walk_mjlab")
+        self.assertEqual(catalog["default_policy"], "stand")
         for name, policy in catalog["policies"].items():
             if "policy_actions" not in policy:
                 self.assertTrue(policy["model_path"].endswith(".onnx"))
             self.assertEqual(policy["switch_group"], "full_body")
-            if name not in ("walk_mjlab", "walk_rlgym"):
+            if name not in ("stand", "walk_mjlab", "walk_rlgym"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
         self.assertEqual(self.config["sonic_actions"]["action_names"], ["dance_in_da_party"])
+
+    def test_locomode_commands_and_motion_actions(self):
+        policies = self.config["rl_policy"]["onnx_infer"]["policies"]
+        self.assertEqual(policies["stand"]["command"]["scale"], [1.0, 1.0, 1.0])
+        self.assertEqual(policies["stand"]["command"]["limits"],
+                         {"min_vx": -0.3, "max_vx": 0.7, "max_vy": 0.4, "max_wz": 1.57})
+        for name in ("dance", "kungfu"):
+            self.assertEqual(policies[name]["action_blend_ratio"], 1.0)
 
     def test_modes_wait_for_explicit_actions(self):
         catalog = self.config["rl_policy"]["onnx_infer"]
@@ -109,7 +118,7 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(teleop["slow_limits"], [0.3, 0.3, 0.5])
         self.assertEqual(teleop["fast_limits"], [0.5, 0.3, 0.5])
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
-        for name in ("walk_mjlab", "walk_rlgym"):
+        for name in ("stand", "walk_mjlab", "walk_rlgym"):
             with self.subTest(policy=name):
                 limits = policies[name]["command"]["limits"]
                 self.assertEqual(limits["min_vx"], -0.3)

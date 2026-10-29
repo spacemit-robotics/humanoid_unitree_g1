@@ -112,12 +112,12 @@ operator_gamepad:
     - {buttons: [RB], operation: state, value: ZERO, hold_ms: 1000}
     - {buttons: [LB, RB], operation: state, value: RL, hold_ms: 1000}
     - {buttons: [R3], operation: ack, trigger: tap}
-    - {buttons: [LT, A], operation: policy, value: walk_mjlab, hold_ms: 1000}
-    - {buttons: [LT, B], operation: policy, value: walk_rlgym, hold_ms: 1000}
+    - {buttons: [LT, A], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [LT, B], operation: policy, value: walk_mjlab, hold_ms: 1000}
     - {buttons: [LT, X], operation: policy, value: dance_mode, hold_ms: 1000}
     - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
     - {buttons: [LT, UP], operation: policy, value: protomotions, hold_ms: 1000}
-    - {buttons: [LT, DOWN], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [LT, DOWN], operation: policy, value: walk_rlgym, hold_ms: 1000}
     - {buttons: [RT, A], operation: action, value: dance, hold_ms: 1000, policy: dance_mode}
     - {buttons: [RT, B], operation: action, value: kungfu, hold_ms: 1000, policy: dance_mode}
     - {buttons: [RT, X], operation: action, value: dance1, hold_ms: 1000, policy: dance_mode}
@@ -125,6 +125,7 @@ operator_gamepad:
     - {buttons: [RT, UP], operation: action, value: jumps1, hold_ms: 1000, policy: dance_mode}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
     - {buttons: [RT, A], operation: action, value: dance_in_da_party, hold_ms: 1000, policy: sonic}
     - {buttons: [RT, A], operation: action, value: walk, hold_ms: 1000, policy: protomotions}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
@@ -276,8 +277,8 @@ rl_policy:
   
   onnx_infer:
     # Each entry retains its own observation/action contract and controller gains.
-    policy_names: [walk_mjlab, walk_rlgym, stand, dance_mode, sonic, protomotions]
-    default_policy: walk_mjlab
+    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, protomotions]
+    default_policy: stand
 
     policies:
       walk_rlgym:
@@ -445,7 +446,7 @@ rl_policy:
                              15, 16, 17, 18,
                              22, 23, 24, 25]
         action_scale: 0.25
-        action_blend_ratio: 0.8
+        action_blend_ratio: 1.0
         infer_decimation: 1
         rl_default_pos: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 左腿
                          -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 右腿
@@ -498,7 +499,7 @@ rl_policy:
                              15, 16, 17, 18,
                              22, 23, 24, 25]
         action_scale: 0.25
-        action_blend_ratio: 0.8
+        action_blend_ratio: 1.0
         infer_decimation: 1
         rl_default_pos: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 左腿
                          -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 右腿
@@ -536,7 +537,7 @@ rl_policy:
         max_pitch: 0.7
 
       stand:
-        display_name: 站立运控
+        display_name: 常规运控（LocoMode）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
@@ -591,12 +592,13 @@ rl_policy:
           dof_vel_scale: 1.0
           dof_pos_subtract_default: true
         command:
-          scale: [0.0, 0.0, 0.0]  # 当前仅验收零速度站立
+          scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]   # 默认站立不移动
           limits:
-            max_vx: 0.0
-            max_vy: 0.0
-            max_wz: 0.0
+            min_vx: -0.3
+            max_vx: 0.7
+            max_vy: 0.4
+            max_wz: 1.57
         max_roll: 0.7
         max_pitch: 0.7
 

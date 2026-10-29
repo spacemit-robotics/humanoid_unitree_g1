@@ -16,7 +16,9 @@ target_link_libraries(test_policy_catalog PRIVATE Eigen3::Eigen yaml-cpp
     ${rl_LIBRARY} ${behavior_manager_LIBRARY} ${robot_base_LIBRARY})
 add_executable(test_switch_client test_switch_client.cpp)
 target_compile_features(test_switch_client PRIVATE cxx_std_17)
-target_include_directories(test_switch_client PRIVATE "${STAGING}/include")
+target_include_directories(test_switch_client PRIVATE "${STAGING}/include"
+    "${SDK_ROOT}/application/native/humanoid_common/src/transport/transport_executor")
+target_link_libraries(test_switch_client PRIVATE Eigen3::Eigen)
 target_link_libraries(test_switch_client PRIVATE yaml-cpp ${operator_client_LIBRARY} Threads::Threads)
 foreach(TEST test_policy_catalog test_switch_client)
     target_compile_options(${TEST} PRIVATE -Wall -Wextra -Werror)
