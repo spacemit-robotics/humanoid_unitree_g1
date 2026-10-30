@@ -9,21 +9,38 @@
 robot_base:
   name: "g1"
   num_dof: 29  # 控制自由度数量（全身：腿12 + 腰3 + 臂14）
+  joint_names: [left_hip_pitch_joint, left_hip_roll_joint, left_hip_yaw_joint,
+                left_knee_joint, left_ankle_pitch_joint, left_ankle_roll_joint,
+                right_hip_pitch_joint, right_hip_roll_joint, right_hip_yaw_joint,
+                right_knee_joint, right_ankle_pitch_joint, right_ankle_roll_joint,
+                waist_yaw_joint, waist_roll_joint, waist_pitch_joint,
+                left_shoulder_pitch_joint, left_shoulder_roll_joint, left_shoulder_yaw_joint,
+                left_elbow_joint, left_wrist_roll_joint, left_wrist_pitch_joint,
+                left_wrist_yaw_joint,
+                right_shoulder_pitch_joint, right_shoulder_roll_joint, right_shoulder_yaw_joint,
+                right_elbow_joint, right_wrist_roll_joint, right_wrist_pitch_joint,
+                right_wrist_yaw_joint]
   robot_dir: ".."
-  # 线程调度配置（按名独立配置，实机建议 sched: fifo + 独立 cpu_id）
+  # K3: 500 Hz I/O/control on CPUs 1/2; 50 Hz inference on CPU 7.
+  # Install the headless service profile to keep device IRQs off these CPUs.
+  # Type-C audio stays on CPU 5; RLIMIT_RTPRIO >= 70 is required.
+  # Runtime reports requested and effective settings; an unprivileged PC may fall back to other.
   threads:
     rl_infer:       # RL 推理线程
-      cpu_id: -1
-      sched: other
-      priority: 0
+      cpu_id: 7
+      sched: fifo
+      priority: 55
+      lock_memory: true
     control_main:   # control_demo 主控制循环
-      cpu_id: -1
-      sched: other
-      priority: 0
+      cpu_id: 2
+      sched: fifo
+      priority: 60
+      lock_memory: true
     driver_main:    # driver_demo / hardware 主线程
-      cpu_id: -1
-      sched: other
-      priority: 0
+      cpu_id: 1
+      sched: fifo
+      priority: 70
+      lock_memory: true
 
   # 默认 PD 增益（顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7）
   kp: &g1_pose_kp [100, 100, 100, 200, 20, 20,    # 左腿
@@ -37,12 +54,152 @@ robot_base:
        2.0, 1.0, 0.4, 1.0, 0.4, 0.4, 0.4, # 左臂
        2.0, 1.0, 0.4, 1.0, 0.4, 0.4, 0.4] # 右臂
 
-  # 默认关节角度（机器人自然站立姿态）
-  default_joint_pos: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 左腿
-                      -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 右腿
+  # HOME 收腿姿态：髋 -0.5、膝 1.0、踝 -0.5 rad；ZERO 独立使用策略准备姿态。
+  # HOME and ZERO have different targets; verify new calibration under suspension.
+  default_joint_pos: [-0.5, 0.0, 0.0, 1.0, -0.5, 0.0,    # 左腿
+                      -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,    # 右腿
                       0.0, 0.0, 0.0,                     # 腰
                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # 左臂
                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # 右臂
+
+# Same runtime configuration for simulation and hardware.
+# run_driver_g1.sh --sim selects MuJoCo; hardware starts in POWER_OFF.
+driver:
+  backend: whole_body
+
+whole_body:
+  config_file: "g1_hardware.yaml"
+
+# Shared terminal, web and Android operator service; simulation remains local-only.
+operator_service:
+  bind_address: "127.0.0.1"
+  port: 8766
+  # Phone control configuration: ../docs/phone_teleop.md.
+  teleop:
+    deadzone: 0.06
+    # Forward speed presets; each policy also applies its command limits.
+    # Choose operating speeds for the available space and support conditions.
+    # Public walking models retain their own command limits.
+    slow_limits: [0.3, 0.3, 0.5]
+    fast_limits: [0.5, 0.3, 0.5]
+    # Client ramps for policies without their own command smoothing.
+    # [vx, vy, wz], in m/s^2, m/s^2, rad/s^2.
+    acceleration: [1.0, 1.0, 2.0]
+    deceleration: [2.5, 0.5, 2.5]
+
+# GameSir receiver in PS4-compatible hid-generic mode.
+# Read-only evdev client; does not depend on Wi-Fi and never acquires automatically.
+operator_gamepad:
+  enabled: true
+  device: /dev/input/by-id/usb-Sony_Computer_Entertainment_Wireless_Controller-event-joystick
+  vendor: 0x054c
+  product: 0x09cc
+  layout: ds4_generic
+  # PS4-compatible screenshot key. Confirm the physical mapping with --dry-run.
+
+  button_codes: {CAPTURE: 317}
+  rumble:
+    enabled: true
+    backend: ds4_usb
+    device: /dev/input/by-id/usb-Sony_Computer_Entertainment_Wireless_Controller-hidraw
+    duration_ms: 500
+    strength: 180
+  bindings:
+    - {buttons: [CAPTURE], operation: control, trigger: tap}
+    - {buttons: [BACK], operation: state, value: POWER_OFF, hold_ms: 1000}
+    - {buttons: [START], operation: state, value: DAMP, hold_ms: 1000}
+    - {buttons: [LB], operation: state, value: HOME, hold_ms: 1000}
+    - {buttons: [RB], operation: state, value: ZERO, hold_ms: 1000}
+    - {buttons: [LB, RB], operation: state, value: RL, hold_ms: 1000}
+    - {buttons: [R3], operation: ack, trigger: tap}
+    - {buttons: [LT, A], operation: policy, value: stand, hold_ms: 1000}
+    - {buttons: [LT, B], operation: policy, value: walk_mjlab, hold_ms: 1000}
+    - {buttons: [LT, X], operation: policy, value: dance_mode, hold_ms: 1000}
+    - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
+    - {buttons: [LT, UP], operation: policy, value: sonic_planner, hold_ms: 1000}
+    - {buttons: [LT, DOWN], operation: policy, value: walk_rlgym, hold_ms: 1000}
+    - {buttons: [RT, A], operation: action, value: dance, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, B], operation: action, value: kungfu, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, X], operation: action, value: dance1, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, Y], operation: action, value: packed, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [RT, UP], operation: action, value: jumps1, hold_ms: 1000, policy: dance_mode}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
+    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: sonic_planner}
+    - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT], operation: cancel, hold_ms: 1000}
+
+# Offline WAV playback is isolated from driver/control and disabled in simulation.
+audio_prompts:
+  enabled: true
+  player: ["/usr/bin/aplay", "--quiet", "--device=plughw:CARD=Device,DEV=0"]
+  max_play_seconds: 5.0
+  fault_repeat_interval_s: 15.0  # Repeat the existing fault clip until the latch clears.
+  directory: "resources/audio"
+  clips:
+    service.ready: service_ready.wav
+    service.restarting: service_restarting.wav
+    gamepad.connected: gamepad_connected.wav
+    gamepad.disconnected: gamepad_disconnected.wav
+    control.acquired: control_acquired.wav
+    control.released: control_released.wav
+    state.POWER_OFF: power_off.wav
+    state.DAMP: damp.wav
+    policy.stand: locomotion_mode.wav
+    policy.walk_mjlab: locomotion_mode.wav
+    policy.walk_rlgym: locomotion_mode.wav
+    policy.dance_mode: dance_mode.wav
+    policy.sonic: sonic_mode.wav
+    policy.sonic_planner: sonic_planner_mode.wav
+    action.dance: dance.wav
+    action.kungfu: kungfu.wav
+    action.dance1: dance1.wav
+    action.packed: packed.wav
+    action.jumps1: jumps1.wav
+    action.standing: standing.wav
+    preset.slow: slow.wav
+    preset.fast: fast.wav
+    fault: fault.wav
+
+logging:
+  level: info
+  directory: "../../../../log/humanoid"
+  console:
+    enabled: true
+  file:
+    enabled: true
+    max_size_mb: 16
+    max_files: 4
+  queue_capacity: 8192
+  queue_memory_mb: 16
+  storage:
+    max_total_mb: 4096       # All G1 sessions, including launcher output and incidents.
+    min_free_mb: 5120        # Stop bulk logging before the system partition fills.
+  blackbox:
+    enabled: true
+    pre_trigger_s: 30
+    post_trigger_s: 10
+    cooldown_s: 60
+    max_memory_mb: 64        # Per process; oldest samples are evicted first.
+  artifacts:
+    - "g1_hardware.yaml"
+    - "../resources/kinematics/g1_ankle.csv"
+    - "../resources/kinematics/g1_waist.csv"
+    - "../resources/xml/g1_29dof_rev_1_0.xml"
+    - "../resources/xml/scene.xml"
+  telemetry:
+    enabled: true
+    policy_enabled: true    # Keep observations/actions independently of event level.
+    idle_rate_hz: 1         # POWER_OFF only; never changes the hardware/control frequency.
+    continuous_rate_hz: 2   # Persistent overview; high-rate data stays in bounded memory.
+    rate_hz: 20
+    control_rate_hz: 50
+    hardware_rate_hz: 100
+    timing_window_s: 5
+  driver_monitor:
+    enabled: true
+    rate_hz: 2
 
 # ============================================================
 # Simulation 模块参数
@@ -57,12 +214,25 @@ simulation:
     assist_kd: 30.0        # G1 悬挂阻尼；避免 2 ms 仿真步长下的高频振荡
     
     # 仿真时间参数
-    sim_dt: 0.002               # 仿真时间步长（秒）
+    scene_xml: "scene.xml"
+    sim_dt: 0.001               # 仿真时间步长（秒）
 
 # ============================================================
 # Behavior Manager 模块参数（FSM 状态机控制）
 # ============================================================
 behavior_manager:
+  policy_switch:
+    timeout_s: 300.0  # Includes the longest configured reference (244.44 s).
+  safety:
+    driver_state_timeout_s: 0.20
+    max_roll: 0.7
+    max_pitch: 0.7
+    release_duration_s: 1.0
+  rl_safety:
+    first_action_timeout_s: 0.20
+    max_action_age_s: 0.20
+    inference_deadline_s: 0.02
+    discard_late_inference: true
   # DAMP 状态阻尼 kd（kp=0，软性支撑）
   # 顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7
   damp_kd: [0.4, 0.4, 0.4, 0.8, 0.4, 0.4,    # 左腿
@@ -71,11 +241,26 @@ behavior_manager:
             0.2, 0.2, 0.2, 0.2, 0.1, 0.04, 0.04,  # 左臂
             0.2, 0.2, 0.2, 0.2, 0.1, 0.04, 0.04]  # 右臂
   
-  # 回零时间（秒）
-  zero_duration: 2.0
-  # ZERO 复用 robot_base 默认 PD 增益；当前 HOME 未单独配置增益，
-  # 因此也使用同一组值。进入 RL 后使用各策略的训练增益。
+  # HOME / ZERO 复用既有机型 PD 增益；进入 RL 后才使用策略训练增益。
+  home:
+    gain_ramp_duration: 1.0
+    move_duration: 3.0
+    kp: *g1_pose_kp
+    kd: *g1_pose_kd
+    # Same reference envelope as RL and g1_hardware.yaml. Hanging
+    # feedback may exceed it; HOME ramps gains from the nearest valid target.
+    target_position_lower: &joint_lower [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
+                            -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
+                            -2.618, -0.52, -0.52,
+                            -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
+                            -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
+    target_position_upper: &joint_upper [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
+                            2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
+                            2.618, 0.52, 0.52,
+                            2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
+                            2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
   zero:
+    move_duration: 2.0
     kp: *g1_pose_kp
     kd: *g1_pose_kd
   
@@ -85,6 +270,17 @@ behavior_manager:
 # ============================================================
 # RL Policy 模块参数
 # ============================================================
+sonic_actions:
+  default_action: standing
+  transition_duration: 0.5
+  action_names: [standing]
+  actions:
+    standing:
+      display_name: 平稳站立
+      file: policy/sonic/standing
+      motion_fps: 50
+      loop: false
+
 rl_policy:
   type: "onnx_infer"
   
@@ -92,13 +288,29 @@ rl_policy:
   rl_dt: 0.02
   
   onnx_infer:
-    policy_names: [walk_mjlab, walk_rlgym, dance, kungfu, stand, tracking, tracking_packed,
-                   tracking_wbt_jumps1, protomotions, sonic]  # 可用策略列表
-    default_policy: "walk_mjlab"  # 默认使用零速度站立的 MjLab 行走策略
+    # Each entry retains its own observation/action contract and controller gains.
+    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, sonic_planner]
+    default_policy: stand
 
     policies:
       walk_rlgym:
+        display_name: 常规运控（RL Gym）
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         model_path: "policy/motion/motion.onnx"
+        # Preserve hardware target bounds without delaying the walking policy at entry.
+        target_position_lower: [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.618, -0.52, -0.52,
+                                -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
+                                -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
+        target_position_upper: [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.618, 0.52, 0.52,
+                                2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
+                                2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
+        target_limit_margin: 0.0
+        entry_target_transition_duration: 0.0
         model_io:
           inputs:
             - {name: obs, source: observation}
@@ -117,15 +329,15 @@ rl_policy:
                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # 左臂
                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # 右臂
         # 来源：sim2sim 验证过旧 RL Gym 行走策略稳定运行的真实值（对应改造前的 simulation.mujoco.controller.kp/kd）
-        # motion.onnx 只控制 12 维腿关节，腰部用大 kp/kd "近似锁腰"减小上半身晃动
+        # motion.onnx 只控制 12 维腿关节；未由策略控制的腰部沿用已测 HOME/ZERO 的 200/5。
         kp: [100, 100, 100, 150, 40, 40,    # 左腿
              100, 100, 100, 150, 40, 40,    # 右腿
-             600, 500, 500,                 # 腰（加大刚度，近似锁死）
+             200, 200, 200,                 # 腰（准备姿态保持）
              40, 40, 40, 40, 20, 10, 10,    # 左臂
              40, 40, 40, 40, 20, 10, 10]    # 右臂
         kd: [2, 2, 2, 4, 2, 2,              # 左腿
              2, 2, 2, 4, 2, 2,              # 右腿
-             15, 12, 12,                    # 腰（加大阻尼，抑制振荡）
+             5, 5, 5,                       # 腰
              1, 1, 1, 1, 0.5, 0.2, 0.2,     # 左臂
              1, 1, 1, 1, 0.5, 0.2, 0.2]     # 右臂
         observation:
@@ -140,6 +352,7 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
           # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
           limits:
+            min_vx: -0.3
             max_vx: 0.8
             max_vy: 0.4
             max_wz: 1.0
@@ -147,11 +360,14 @@ rl_policy:
         max_pitch: 0.7
 
       walk_mjlab:
+        display_name: 常规运控（MJLab）
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # Unitree 官方 unitree_rl_mjlab G1 velocity 示例模型：29DOF、50Hz、零命令站立。
         # 固定来源 commit: 1425b15f73bd4095f0df53709d7c389c3eb9e790
         # phase-gate 包装模型 SHA256: e8277aa4f03ad6df9d57fb5fb70a8d239f971ec3ff4093585dbbc6ede5d82951
         # 原始官方模型 SHA256: 2a66ca6336eadb3c0b34b557763f3e06d01ff8fcf6260dd4cedbd69d6093fc28
-        # ONNX metadata run_path: 2026-03-18_18-40-20
+
         model_path: "policy/walk_mjlab/policy.onnx"
         model_io:
           inputs:
@@ -204,14 +420,32 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
           limits:
-            # 上游 vx 为 [-0.5, 1.0]；当前 SDK limits 为对称范围，先保守取 0.5。
+            min_vx: -0.3
             max_vx: 0.5
             max_vy: 0.5
             max_wz: 1.0
         max_roll: 0.7
         max_pitch: 0.7
 
+        # Bound policy targets before the real driver validates them, as for stand.
+        target_position_lower: [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.618, -0.52, -0.52,
+                                -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
+                                -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
+        target_position_upper: [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.618, 0.52, 0.52,
+                                2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
+                                2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
+        target_limit_margin: 0.0
+        entry_target_transition_duration: 0.0
+
       dance:
+        display_name: 舞蹈
+        switch_group: full_body
+        # The motion clock starts with the first inference; do not lag its targets.
+        policy_switch: {transition_duration: 0.0}
         model_path: "policy/dance/dance_0605.onnx"
         model_io:
           inputs:
@@ -224,7 +458,7 @@ rl_policy:
                              15, 16, 17, 18,
                              22, 23, 24, 25]
         action_scale: 0.25
-        action_blend_ratio: 0.8
+        action_blend_ratio: 1.0
         infer_decimation: 1
         rl_default_pos: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 左腿
                          -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 右腿
@@ -257,14 +491,14 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
-        # 切到 dance 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
-        prerequisite:
-          policy: stand
-          duration: 2.0
 
       kungfu:
+        display_name: 功夫
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.0}
         model_path: "policy/kungfu/kungfu_0609.onnx"
         model_io:
           inputs:
@@ -277,7 +511,7 @@ rl_policy:
                              15, 16, 17, 18,
                              22, 23, 24, 25]
         action_scale: 0.25
-        action_blend_ratio: 0.8
+        action_blend_ratio: 1.0
         infer_decimation: 1
         rl_default_pos: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 左腿
                          -0.1, 0.0, 0.0, 0.3, -0.2, 0.0,    # 右腿
@@ -310,14 +544,14 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
-        # 切到 kungfu 前先跑 stand（LocoMode 全身策略）作动态平衡过渡
-        prerequisite:
-          policy: stand
-          duration: 2.0
 
       stand:
+        display_name: 常规运控（LocoMode）
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # policy_29dof.pt 转换的全身站立/行走策略（LSTM，ISAACLab/RSL-RL 训练）
         # 控制 29 个关节，关节顺序为左右对称配对排列（见 action_joint_index）
         model_path: "policy/stand/stand_29dof.onnx"
@@ -370,17 +604,50 @@ rl_policy:
           dof_vel_scale: 1.0
           dof_pos_subtract_default: true
         command:
-          scale: [1.0, 1.0, 1.0]  # LocoMode cmd_scale 全为 1.0
+          scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]   # 默认站立不移动
-          # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
           limits:
-            max_vx: 0.8
+            min_vx: -0.3
+            max_vx: 0.7
             max_vy: 0.4
-            max_wz: 1.0
+            max_wz: 1.57
         max_roll: 0.7
         max_pitch: 0.7
 
+        # Canonical-order target bounds; physical mapping remains hardware YAML's responsibility.
+        target_position_lower: [-2.5307, -0.5236, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.5307, -2.9671, -2.7576, -0.087267, -0.87267, -0.2618,
+                                -2.618, -0.52, -0.52,
+                                -3.0892, -0.523599, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558,
+                                -3.0892, -2.2515, -2.618, -1.0472, -1.972222054, -1.614429558, -1.614429558]
+        target_position_upper: [2.8798, 2.9671, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.8798, 0.5236, 2.7576, 2.8798, 0.5236, 0.2618,
+                                2.618, 0.52, 0.52,
+                                2.6704, 2.2515, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558,
+                                2.6704, 0.523599, 2.618, 2.0944, 1.972222054, 1.614429558, 1.614429558]
+        target_limit_margin: 0.0
+        # Blend the first policy targets from ZERO over 0.5 s.
+        entry_target_transition_duration: 0.5
+
+      dance_mode:
+        display_name: 舞蹈运控
+        switch_group: full_body
+        command:
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
+        policy_actions:
+          idle_policy: stand
+          action_names: [dance, kungfu, dance1, packed, jumps1]
+          actions:
+            dance: {display_name: 舞蹈, policy: dance}
+            kungfu: {display_name: 功夫, policy: kungfu}
+            dance1: {display_name: Dance 1, policy: tracking}
+            packed: {display_name: Packed, policy: tracking_packed}
+            jumps1: {display_name: Jumps 1, policy: tracking_wbt_jumps1}
+
       tracking:
+        display_name: Dance 1
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
         model_io:
@@ -392,10 +659,11 @@ rl_policy:
           type: mjlab
           reference_file: "policy/tracking/dance1_subject2.npz"
           motion_fps: 50
-          start_mode: manual  # RL 接管后保持首帧，HMI 主页面按 G 开始动作
+          start_mode: manual  # 由舞蹈运控的动作请求开始播放
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]  # pelvis→torso: yaw/roll/pitch
           anchor_yaw_align: true
+          anchor_xy_align: true
         # 必须与 reference_file 中 joint_pos[0] 按标准电机关节顺序逐项一致；
         # 更换 NPZ 时必须同步更新。只有参考首帧一致的策略才能复用此锚点。
         zero_target_pos: &tracking_zero_target
@@ -453,10 +721,14 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
 
       tracking_packed:
+        display_name: Packed
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
         # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
@@ -481,6 +753,7 @@ rl_policy:
           anchor_body_index: 15  # torso_link 在 MJCF body 顺序中的索引
           anchor_waist_joint_indices: [12, 13, 14]
           anchor_yaw_align: true
+          anchor_xy_align: true
         zero_target_pos: *tracking_zero_target  # 两份 NPZ 的 joint_pos[0] 逐项一致
         action_joint_index: [0, 1, 2, 3, 4, 5,
                              6, 7, 8, 9, 10, 11,
@@ -524,10 +797,14 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 0.7
         max_pitch: 0.7
 
       tracking_wbt_jumps1:
+        display_name: Jumps 1
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
@@ -543,17 +820,21 @@ rl_policy:
             - {name: body_quat_w, target: ignore}
             - {name: body_lin_vel_w, target: ignore}
             - {name: body_ang_vel_w, target: ignore}
-        motion_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
-        motion_fps: 50
-        anchor_body_index: 9             # torso_link 在 npz 30-body（IsaacSim BFS 遍历）中的全局索引
+        policy_adapter:
+          type: mjlab
+          reference_file: "policy/tracking_wbt_jumps1/jumps1_subject1.npz"
+          motion_fps: 50
+          start_mode: manual
+          anchor_body_index: 9  # torso_link in the reference body's order
+          anchor_waist_joint_indices: [12, 13, 14]
+          anchor_yaw_align: true
+          anchor_xy_align: true
         # ZERO 阶段 PD 目标：npz frame 0（URDF 顺序），近直立站姿 + 双臂侧平举，腰部无后仰
         zero_target_pos: [-0.001, 0.004, 0.108, 0.185, -0.123, 0.000,
                            0.001, -0.042, -0.225, 0.218, -0.196, -0.012,
                            0.006, 0.000, -0.013,
                           -0.042, 1.629, -0.198, 1.191, 0.349, 0.220, 0.039,
                           -0.036, -1.641, 0.000, 1.302, -0.060, 0.075, -0.170]
-        anchor_waist_joint_indices: [12, 13, 14]
-        anchor_yaw_align: true
         # IsaacSim action[i] → URDF joint[action_joint_index[i]]
         action_joint_index: [0, 6, 12,
                              1, 7, 13,
@@ -604,11 +885,18 @@ rl_policy:
         command:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         max_roll: 2.0
         max_pitch: 2.0
 
-      protomotions:
+      protomotions_walk:
+        display_name: 行走动作
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # ProtoMotions G1 unified pipeline：5.64M 参数 MLP，输出为绝对 PD 目标。
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/protomotions/unified_pipeline.onnx"
         model_io:
           inputs:
@@ -670,6 +958,87 @@ rl_policy:
         max_pitch: 2.0
 
       sonic:
+        display_name: SONIC 运控
+        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
+        # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0, max_vy: 0, max_wz: 0}
+        model_path: "policy/sonic/sonic_release_unified.onnx"
+        model_io:
+          inputs:
+            - {name: reference_obs, source: external}
+            - {name: proprio_history, source: observation}
+          outputs:
+            - {name: action, target: action}
+        # ONNX action[i]（IsaacLab 顺序）-> URDF joint[action_joint_index[i]]。
+        action_joint_index: [0, 6, 12,
+                             1, 7, 13,
+                             2, 8, 14,
+                             3, 9, 15, 22,
+                             4, 10, 16, 23,
+                             5, 11, 17, 24,
+                             18, 25, 19, 26,
+                             20, 27, 21, 28]
+        action_scale: [0.350661, 0.350661, 0.547546,
+                       0.350661, 0.350661, 0.438577,
+                       0.547546, 0.547546, 0.438577,
+                       0.350661, 0.350661, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.438577, 0.438577, 0.438577, 0.438577,
+                       0.074501, 0.074501, 0.074501, 0.074501]
+        action_blend_ratio: 1.0
+        infer_decimation: 1
+        rl_default_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                         -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          0.0,   0.0, 0.0,
+                          0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
+                          0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
+        zero_target_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                           0.0, 0.0, 0.0,
+                           0.2, 0.2, 0.0, 0.6, 0.0, 0.0, 0.0,
+                           0.2, -0.2, 0.0, 0.6, 0.0, 0.0, 0.0]
+        kp: [99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
+             40.179, 28.501, 28.501,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778,
+             14.251, 14.251, 14.251, 14.251, 14.251, 16.778, 16.778]
+        kd: [6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             6.309, 6.309, 2.558, 6.309, 1.814, 1.814,
+             2.558, 1.814, 1.814,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
+             0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
+        observation:
+          segment_0_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
+          segment_0_mode: flat_history
+          segment_0_length: 10
+          segment_0_order: oldest_first
+          segment_0_include_current: true
+          strict_dim_check: true
+          ang_vel_scale: 1.0
+          dof_pos_scale: 1.0
+          dof_vel_scale: 1.0
+          # SONIC 官方部署向 decoder 输入 q - default_angles。
+          dof_pos_subtract_default: true
+        policy_adapter:
+          type: sonic
+          catalog: sonic_actions
+          reference_file: "policy/sonic/standing"
+          motion_fps: 50
+          future_frames: 10
+          future_step: 5
+        max_roll: 2.0
+        max_pitch: 2.0
+
+      sonic_planner:
+        display_name: SONIC 运控（规划行走）
+        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        switch_group: full_body
+        policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
         model_path: "policy/sonic/sonic_release_unified.onnx"
         model_io:
@@ -702,12 +1071,11 @@ rl_policy:
                           0.0,   0.0, 0.0,
                           0.2,   0.2, 0.0, 0.6,  0.0, 0.0, 0.0,
                           0.2,  -0.2, 0.0, 0.6,  0.0, 0.0, 0.0]
-        # 官方 dance 参考首帧，由 IsaacLab 顺序映射到 URDF 顺序。
-        zero_target_pos: [0.128441, -0.019236, 0.175869, 0.020642, -0.147584, 0.026962,
-                          0.102713, 0.020960, -0.137002, 0.050691, -0.111343, -0.016655,
-                          0.020116, -0.015831, 0.174060,
-                         -0.048029, 0.249355, -0.628862, 1.214126, -0.059122, 0.039018, 0.153431,
-                         -0.097087, -0.284472, 0.669457, 1.202778, 0.220654, 0.045179, -0.014889]
+        zero_target_pos: [-0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                          -0.312, 0.0, 0.0, 0.669, -0.363, 0.0,
+                           0.0, 0.0, 0.0,
+                           0.2, 0.2, 0.0, 0.6, 0.0, 0.0, 0.0,
+                           0.2, -0.2, 0.0, 0.6, 0.0, 0.0, 0.0]
         kp: [99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
              99.098, 99.098, 40.179, 99.098, 28.501, 28.501,
              40.179, 28.501, 28.501,
@@ -730,14 +1098,31 @@ rl_policy:
           dof_vel_scale: 1.0
           # SONIC 官方部署向 decoder 输入 q - default_angles。
           dof_pos_subtract_default: true
+        command:
+          init: [0, 0, 0]
+          limits: {max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
         policy_adapter:
           type: sonic
-          reference_file: "policy/sonic/dance_in_da_party_001__A464"
           motion_fps: 50
           future_frames: 10
           future_step: 5
-        max_roll: 2.0
-        max_pitch: 2.0
+          planner:
+            enabled: true
+            model_path: policy/sonic/planner_sonic.onnx
+            mode: -1
+            output_fps: 50
+            replan_interval: 0.5
+            lookahead: 0.8
+            default_height: 0.788740
+            facing_horizon: 1.0
+            slow_walk_max_speed: 0.8
+            walk_max_speed: 2.5
+            random_seed: 1234
+            allowed_pred_num_tokens: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+            runtime:
+              provider: cpu
+              threads: 4
+              ort_spinning: false
 
 # ============================================================
 # HMI 参数（状态回传、心跳与键盘速度步长）
@@ -747,7 +1132,7 @@ hmi:
   command_heartbeat_hz: 20.0
   command_timeout: 0.5
   status_timeout: 0.6
-  request_timeout: 15.0
+  request_timeout: 305.0  # Allow behavior_manager to report handoff success/failure first.
   key_highlight_ms: 180
   velocity:
     step_vx: 0.1
@@ -758,12 +1143,12 @@ hmi:
 # Transport 模块参数（通信相关）
 # ============================================================
 transport:
-  type: "udp"  # 通信类型：udp / shm
+  type: "shm"  # 单机三进程；跨机时切换 udp 并填写对应地址
   
   udp:  # UDP 通信专属参数
-    driver_ip: "10.0.90.6"
-    control_ip: "10.0.91.0"
-    hmi_ip: "10.0.91.0"
+    driver_ip: "127.0.0.1"
+    control_ip: "127.0.0.1"
+    hmi_ip: "127.0.0.1"
     state_port: 8800    # driver → control 发送机器人状态数据
     control_port: 8801  # control → driver 发送控制命令
     hmi_port: 8802      # hmi → control 发送键盘命令
