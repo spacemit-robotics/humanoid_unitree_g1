@@ -1,0 +1,23 @@
+{
+  "service_ready.wav": "程序已启动",
+  "service_restarting.wav": "程序重启中",
+  "power_off.wav": "已掉电",
+  "damp.wav": "阻尼模式",
+  "locomotion_mode.wav": "常规运控",
+  "dance_mode.wav": "舞蹈运控",
+  "sonic_mode.wav": "索尼克运控",
+  "sonic_planner_mode.wav": "索尼克规划行走",
+  "dance.wav": "开始舞蹈",
+  "kungfu.wav": "开始功夫",
+  "dance1.wav": "开始舞蹈一",
+  "packed.wav": "开始打包版舞蹈",
+  "jumps1.wav": "开始跳跃一",
+  "standing.wav": "平稳站立",
+  "slow.wav": "慢速模式",
+  "fast.wav": "快速模式",
+  "fault.wav": "程序出现故障",
+  "gamepad_connected.wav": "手柄已连接",
+  "gamepad_disconnected.wav": "手柄已断开",
+  "control_acquired.wav": "已接管控制权",
+  "control_released.wav": "控制权已释放"
+}

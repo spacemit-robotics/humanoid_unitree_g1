@@ -17,8 +17,24 @@ policy/
 *.tar.gz
 *.zip
 
+# Calibration data is supplied separately from SDK source.
+/resources/kinematics/g1_ankle.csv
+/resources/kinematics/g1_waist.csv
+/resources/kinematics/g1_waist_triangles.csv
+
 # --- IDE 与系统 ---
 .vscode/
 .idea/
 .DS_Store
 *.swp
+
+# Python test bytecode
+__pycache__/
+
+# Runtime media and external keyframes are distributed separately.
+/resources/audio/*.wav
+/resources/audio/generation.json
+/resources/audio/sources.json
+/resources/arm_interactions/*.npz
+/resources/arm_interactions/manifest.json
+/resources/arm_interactions/**/*.yaml

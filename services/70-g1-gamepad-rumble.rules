@@ -1,0 +1,2 @@
+# GameSir PS4-compatible USB output only; g1.service already has the input group.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", GROUP="input", MODE="0660"

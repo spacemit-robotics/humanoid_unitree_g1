@@ -1,0 +1,34 @@
+[Unit]
+Description=SpacemiT G1 driver, control and HMI
+Wants=network-online.target sys-kernel-debug.mount
+After=network-online.target g1-serial-order.service sys-kernel-debug.mount
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=@USER@
+Group=@GROUP@
+SupplementaryGroups=audio input
+WorkingDirectory=@SDK_ROOT@
+Environment="SDK_ROOT=@SDK_ROOT@"
+Environment="HOME=@HOME@"
+Environment="XDG_STATE_HOME=@HOME@/.local/state"
+Environment="G1_CONFIG=@SDK_ROOT@/application/native/humanoid_unitree_g1/config/g1.yaml"
+Environment="G1_STARTUP_TIMEOUT_S=60"
+# PREEMPT_DYNAMIC is reset by a reboot; set and verify it before any robot process.
+ExecStartPre=+/usr/bin/python3 @SDK_ROOT@/output/staging/bin/configure_g1_realtime.py --apply --preempt-only
+ExecStart=@SDK_ROOT@/output/staging/bin/run_g1.sh --real --no-tui@NETWORK_ARGS@
+# Normal shutdown is silent. Playback failure must not prevent automatic restart.
+ExecStopPost=-@SDK_ROOT@/output/staging/bin/operator_audio @SDK_ROOT@/application/native/humanoid_unitree_g1/config/g1.yaml --service-failure
+LimitRTPRIO=70
+LimitMEMLOCK=infinity
+KillMode=mixed
+KillSignal=SIGINT
+SuccessExitStatus=130 143
+TimeoutStopSec=15
+# Restart the processes in POWER_OFF; never restore control ownership or motion.
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
