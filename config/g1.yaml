@@ -211,7 +211,7 @@ simulation:
     # 初始化参数
     init_height: 0.85       # 初始高度（机器人从此高度落下）
     assist_height: 0.8     # 悬挂保护目标高度
-    assist_kd: 30.0        # G1 悬挂阻尼；避免 2 ms 仿真步长下的高频振荡
+    assist_kd: 30.0        # 悬挂保护阻尼系数
     
     # 仿真时间参数
     scene_xml: "scene.xml"

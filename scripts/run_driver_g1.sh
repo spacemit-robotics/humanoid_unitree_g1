@@ -41,6 +41,18 @@ if [[ "$STAIRS" == yes ]]; then
 fi
 if [[ "$BACKEND" == "whole_body" ]]; then
     # Serial access is provided by the board's device permissions; do not elevate here.
-    exec flock --exclusive --nonblock /tmp/g1_hardware.lock "$DRIVER" "$CONFIG" "${DRIVER_ARGS[@]}"
+    # Keep the lock open in driver_runtime and deliver signals directly to it.
+    exec 9>/tmp/g1_hardware.lock
+    if flock --exclusive --nonblock --conflict-exit-code 75 9; then
+        :
+    else
+        LOCK_STATUS=$?
+        if [[ "$LOCK_STATUS" == 75 ]]; then
+            echo "[run_driver_g1] 硬件驱动已在运行，无法重复启动。" >&2
+            exit 1
+        fi
+        echo "[run_driver_g1] 无法获取硬件锁（退出码 $LOCK_STATUS）。" >&2
+        exit "$LOCK_STATUS"
+    fi
 fi
 exec "$DRIVER" "$CONFIG" "${DRIVER_ARGS[@]}"
