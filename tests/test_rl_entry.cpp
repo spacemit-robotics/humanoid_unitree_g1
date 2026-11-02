@@ -285,23 +285,37 @@ void CheckWaistProjection(const whole_body::RuntimeConfig &config, const YAML::N
                 Require(runtime.core->Read(&state) == WHOLE_BODY_OK, "waist projection feedback");
                 Require(runtime.core->Write(command, runtime.devices->feedback_time_s) == WHOLE_BODY_OK,
                     "waist projected command: " + runtime.core->LastError());
-                std::array<double, 2> motor_effort{}, joint_effort{};
+                std::array<double, 2> motor_effort{}, measured_motor{}, measured_joint{};
                 for (size_t side = 0; side < 2; ++side) {
                     const size_t motor = MotorIndex(config, coupling.motors[side]);
                     const auto &sent = runtime.devices->written[motor];
                     motor_effort[side] = config.motors[motor].polarity * sent.kp *
                         (sent.pos_des - runtime.devices->feedback[motor].pos);
+                    measured_motor[side] = config.motors[motor].polarity *
+                        (runtime.devices->feedback[motor].pos - config.motors[motor].zero_offset);
                     Require(sent.trq_des == 0.0f && sent.kd > 0.0f,
                         "projection retains native damping without host residual");
                 }
-                Require(runtime.mappings.back()->MotorTorqueToJoint(
-                    {state.position[14], state.position[13]}, motor_effort, &joint_effort),
-                    "reverse native proportional effort");
+                // Evaluate J at sampled motor coordinates. An inverse solve from
+                // a target-side seed can select the opposite side of a shared edge.
+                std::array<double, 4> jacobian;
+                Require(runtime.mappings.back()->MotorToJoint(
+                    measured_motor, &measured_joint, &jacobian), "measured waist Jacobian");
+                const std::array<double, 2> joint_effort{
+                    jacobian[0] * motor_effort[0] + jacobian[2] * motor_effort[1],
+                    jacobian[1] * motor_effort[0] + jacobian[3] * motor_effort[1]};
                 for (size_t side = 0; side < 2; ++side) {
                     const size_t joint = JointIndex(config, coupling.joints[side]);
-                    Require(std::abs(joint_effort[side] - command.kp[joint] *
-                        (command.position[joint] - state.position[joint])) < 2.0e-5,
-                        "projected target preserves full joint proportional effort");
+                    Require(std::abs(measured_joint[side] - state.position[joint]) < 1.0e-12,
+                        "projection check uses the same measured joint state");
+                    const double expected = command.kp[joint] *
+                        (command.position[joint] - state.position[joint]);
+                    Require(std::abs(joint_effort[side] - expected) < 2.0e-5,
+                        "projected target preserves full joint proportional effort: pitch=" +
+                        std::to_string(pitch) + ", roll=" + std::to_string(roll) +
+                        ", side=" + std::to_string(side) +
+                        ", actual=" + std::to_string(joint_effort[side]) +
+                        ", expected=" + std::to_string(expected));
                 }
                 ++checked;
             }
