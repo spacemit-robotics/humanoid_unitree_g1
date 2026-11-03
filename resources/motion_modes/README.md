@@ -35,6 +35,10 @@ SONIC 使用同一模型的 `sonic_actions` 参考目录。两者在客户端都
 
 SONIC 规划行走使用 `policy/sonic/planner_sonic.onnx` 生成参考，
 与静态展示共用 tracker 模型。规划在后台进行，控制线程持续使用最近的有效参考。
+`robot_base.threads.motion_planner` 将规划线程及其 CPU 推理线程池配置到 CPU 0、3、4，
+使用普通调度；planner 的 `runtime.threads: 3` 包含调用线程。
+驱动、控制与 RL 调用线程继续使用 CPU 1、2、7，USB 与音频的核心分配不变。
+其他主机可按可用核心调整这组配置；启动日志同时显示请求值与实际调度结果。
 
 RL 内选择同组模式时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
 普通站走策略在零速有效推理帧交接；定时动作播放中选择其他模式会等待末帧。
