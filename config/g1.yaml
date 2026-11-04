@@ -41,6 +41,11 @@ robot_base:
       sched: fifo
       priority: 70
       lock_memory: true
+    motion_planner: # Planner and its CPU workers avoid control, motor USB and audio CPUs.
+      cpu_affinity: [0, 3, 4]
+      sched: other
+      priority: 0
+      lock_memory: true
 
   # 默认 PD 增益（顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7）
   kp: &g1_pose_kp [100, 100, 100, 200, 20, 20,    # 左腿
@@ -1121,7 +1126,7 @@ rl_policy:
             allowed_pred_num_tokens: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
             runtime:
               provider: cpu
-              threads: 4
+              threads: 3
               ort_spinning: false
 
 # ============================================================
