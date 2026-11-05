@@ -43,11 +43,13 @@ robot_base:
       lock_memory: true
     # Planner and its CPU workers avoid control, motor USB and audio CPUs.
     # SCHED_IDLE: the planner only uses CPU time the tracker workers leave.
+    # No lock_memory: control_main already locks the control process; locking
+    # from the planner would also lock tools that only load the model.
     motion_planner:
       cpu_affinity: [0, 3, 4]
       sched: idle
       priority: 0
-      lock_memory: true
+      lock_memory: false
 
   # 默认 PD 增益（顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7）
   kp: &g1_pose_kp [100, 100, 100, 200, 20, 20,    # 左腿
