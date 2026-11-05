@@ -453,6 +453,10 @@ rl_policy:
         # The motion clock starts with the first inference; do not lag its targets.
         policy_switch: {transition_duration: 0.0}
         model_path: "policy/dance/dance_0605.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: actor_obs, source: observation}
@@ -506,6 +510,10 @@ rl_policy:
         switch_group: full_body
         policy_switch: {transition_duration: 0.0}
         model_path: "policy/kungfu/kungfu_0609.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: actor_obs, source: observation}
@@ -656,6 +664,10 @@ rl_policy:
         policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: obs, source: observation}
@@ -737,6 +749,10 @@ rl_policy:
         policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
         # 因此显式固定 time_step=0，并明确忽略未消费输出，禁止静默降级。
         model_io:
@@ -814,6 +830,10 @@ rl_policy:
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: obs, source: observation}
@@ -904,6 +924,10 @@ rl_policy:
           init: [0, 0, 0]
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/protomotions/unified_pipeline.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: current_anchor_rot, source: external}
@@ -973,6 +997,10 @@ rl_policy:
           init: [0, 0, 0]
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/sonic/sonic_release_unified.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: reference_obs, source: external}
@@ -1047,6 +1075,10 @@ rl_policy:
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
         model_path: "policy/sonic/sonic_release_unified.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: reference_obs, source: external}
