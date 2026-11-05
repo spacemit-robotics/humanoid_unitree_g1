@@ -41,9 +41,11 @@ robot_base:
       sched: fifo
       priority: 70
       lock_memory: true
-    motion_planner: # Planner and its CPU workers avoid control, motor USB and audio CPUs.
+    # Planner and its CPU workers avoid control, motor USB and audio CPUs.
+    # SCHED_IDLE: the planner only uses CPU time the tracker workers leave.
+    motion_planner:
       cpu_affinity: [0, 3, 4]
-      sched: other
+      sched: idle
       priority: 0
       lock_memory: true
 
@@ -989,7 +991,9 @@ rl_policy:
 
       sonic:
         display_name: SONIC 运控
-        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        # Workers stay off CPU 5 (Type-C/audio IRQ) and 6 (motor USB IRQ); the
+        # calling thread is rl_infer on CPU 7.
+        runtime: {provider: cpu, threads: 4, ort_spinning: false, affinity: "0,3,4"}
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
@@ -1070,7 +1074,9 @@ rl_policy:
 
       sonic_planner:
         display_name: SONIC 运控（规划行走）
-        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        # Workers stay off CPU 5 (Type-C/audio IRQ) and 6 (motor USB IRQ); the
+        # calling thread is rl_infer on CPU 7.
+        runtime: {provider: cpu, threads: 4, ort_spinning: false, affinity: "0,3,4"}
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
@@ -1151,7 +1157,8 @@ rl_policy:
             model_path: policy/sonic/planner_sonic.onnx
             mode: -1
             output_fps: 50
-            replan_interval: 0.5
+            # Walking cadence; a changed command still triggers a plan immediately.
+            replan_interval: 1.0
             lookahead: 0.8
             default_height: 0.788740
             facing_horizon: 1.0

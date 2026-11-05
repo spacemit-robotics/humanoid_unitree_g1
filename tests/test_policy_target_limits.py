@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
 # SPDX-License-Identifier: Apache-2.0
-"""Verify that every RL policy clamps its joint targets to the hardware envelope."""
+"""Verify RL target envelopes and SONIC inference thread placement on G1."""
 
 from pathlib import Path
 import unittest
@@ -60,6 +60,22 @@ class PolicyTargetLimitsTest(unittest.TestCase):
 
     def test_home_shares_the_envelope(self):
         self.assert_hardware_envelope("home", self.config["behavior_manager"]["home"])
+
+    def test_sonic_inference_threads_avoid_irq_cpus(self):
+        threads = self.config["robot_base"]["threads"]
+        planner_cpus = set(threads["motion_planner"]["cpu_affinity"])
+        reserved = {threads[name]["cpu_id"] for name in ("rl_infer", "control_main", "driver_main")}
+        self.assertEqual(threads["motion_planner"]["sched"], "idle")
+        self.assertFalse(planner_cpus & (reserved | {5, 6}))
+        for name in ("sonic", "sonic_planner"):
+            with self.subTest(policy=name):
+                runtime = self.policies[name]["runtime"]
+                self.assertFalse(runtime["ort_spinning"])
+                worker_cpus = {int(cpu) for cpu in runtime["affinity"].split(",")}
+                self.assertEqual(worker_cpus, planner_cpus)
+        planner = self.policies["sonic_planner"]["policy_adapter"]["planner"]
+        self.assertFalse(planner["runtime"]["ort_spinning"])
+        self.assertEqual(planner["replan_interval"], 1.0)
 
 
 if __name__ == "__main__":
