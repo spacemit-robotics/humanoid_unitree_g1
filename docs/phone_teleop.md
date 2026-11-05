@@ -32,12 +32,23 @@ SONIC 规划行走通过方向键或双摇杆给规划器发送速度。ProtoMot
 
 | 参数 | 前进 | 倒退 | 横移 | 转向 |
 | --- | --- | --- | --- | --- |
-| 慢速幅值上限 | 0.3 m/s | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
-| 快速幅值上限 | 0.5 m/s | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
+| 慢速幅值上限 | 0.6 m/s | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
+| 快速幅值上限 | 按下表中的策略限幅 | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
 | 客户端加速度（启用时） | 1.0 m/s² | 1.0 m/s² | 1.0 m/s² | 2.0 rad/s² |
 | 客户端减速度（启用时） | 2.5 m/s² | 2.5 m/s² | 0.5 m/s² | 2.5 rad/s² |
 
-所有上限还要取当前策略 `command.limits` 的交集。三套常规运控和 SONIC 规划行走接收速度，
+前进预设与当前策略 `command.limits` 取交集，满幅输入对应以下指令速度：
+
+| 运控模式 | 慢速前进 | 快速前进 | 配置依据 |
+| --- | --- | --- | --- |
+| 常规运控（LocoMode） | 0.6 m/s | 0.7 m/s | [模型配套 cmd_range](https://github.com/ccrpRepo/RoboMimic_Deploy/blob/master/policy/loco_mode/config/LocoMode.yaml) |
+| 常规运控（RL Gym） | 0.6 m/s | 0.8 m/s | 本应用已有 command.limits |
+| 常规运控（MJLab） | 0.6 m/s | 1.0 m/s | [对应模型部署配置](https://github.com/unitreerobotics/unitree_rl_mjlab/blob/1425b15f73bd4095f0df53709d7c389c3eb9e790/deploy/robots/g1/config/policy/velocity/v0/params/deploy.yaml) |
+| SONIC 规划行走 | 0.6 m/s | 0.8 m/s | 本应用已有 command.limits |
+
+慢速前进沿用 0.6 m/s 操作预设；表中数值是下发指令，不是实测极限速度。
+快档只增加前进速度，倒退、横移、转向及加减速参数保持不变。
+三套常规运控和 SONIC 规划行走接收速度，
 舞蹈与 SONIC 静态展示的限速为零，方向键禁用。
 `stand` 对应 LocoMode 站走模型，不是仅站立模式。
 各策略限幅同样覆盖手柄、横屏双摇杆和 TUI，客户端不增加额外滤波。

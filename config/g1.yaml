@@ -84,9 +84,10 @@ operator_service:
     deadzone: 0.06
     # Forward speed presets; each policy also applies its command limits.
     # Choose operating speeds for the available space and support conditions.
-    # Public walking models retain their own command limits.
-    slow_limits: [0.3, 0.3, 0.5]
-    fast_limits: [0.5, 0.3, 0.5]
+    # Forward fast caps after policy clipping: LocoMode 0.7, RL Gym 0.8,
+    # MJLab 1.0, SONIC planner 0.8 m/s. Reverse remains limited per policy.
+    slow_limits: [0.6, 0.3, 0.5]
+    fast_limits: [1.0, 0.3, 0.5]
     # Client ramps for policies without their own command smoothing.
     # [vx, vy, wz], in m/s^2, m/s^2, rad/s^2.
     acceleration: [1.0, 1.0, 2.0]
@@ -426,7 +427,7 @@ rl_policy:
           init: [0.0, 0.0, 0.0]
           limits:
             min_vx: -0.3
-            max_vx: 0.5
+            max_vx: 1.0
             max_vy: 0.5
             max_wz: 1.0
         max_roll: 0.7
@@ -1105,7 +1106,7 @@ rl_policy:
           dof_pos_subtract_default: true
         command:
           init: [0, 0, 0]
-          limits: {max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
+          limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
         policy_adapter:
           type: sonic
           motion_fps: 50
