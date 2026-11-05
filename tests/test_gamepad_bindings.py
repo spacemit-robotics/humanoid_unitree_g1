@@ -121,13 +121,13 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(teleop["acceleration"], [1.0, 1.0, 2.0])
         self.assertEqual(teleop["deceleration"], [2.5, 0.5, 2.5])
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
-        forward_limits = {"stand": 0.7, "walk_mjlab": 1.0, "walk_rlgym": 0.8, "sonic_planner": 0.8}
+        forward_limits = {"stand": 0.7, "walk_mjlab": 1.0, "walk_rlgym": 0.8, "sonic_planner": 0.5}
         for name, forward in forward_limits.items():
             with self.subTest(policy=name):
                 limits = policies[name]["command"]["limits"]
                 self.assertEqual(limits["min_vx"], -0.3)
                 self.assertEqual(limits["max_vx"], forward)
-                self.assertEqual(min(teleop["slow_limits"][0], limits["max_vx"]), 0.6)
+                self.assertEqual(min(teleop["slow_limits"][0], limits["max_vx"]), min(0.6, forward))
                 self.assertEqual(min(teleop["fast_limits"][0], limits["max_vx"]), forward)
                 for preset in ("slow_limits", "fast_limits"):
                     self.assertEqual(max(-teleop[preset][0], limits["min_vx"]), -0.3)

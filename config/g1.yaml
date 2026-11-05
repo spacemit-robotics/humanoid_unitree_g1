@@ -1138,7 +1138,9 @@ rl_policy:
           dof_pos_subtract_default: true
         command:
           init: [0, 0, 0]
-          limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
+          # Bring-up cap: the 11/04 fall started at 0.5 m/s. Raise only after
+          # bounded targets, planner timing and driver timing pass on hardware.
+          limits: {min_vx: -0.3, max_vx: 0.5, max_vy: 0.5, max_wz: 0.8}
         policy_adapter:
           type: sonic
           motion_fps: 50

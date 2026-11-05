@@ -44,9 +44,11 @@ SONIC 规划行走通过方向键或双摇杆给规划器发送速度。ProtoMot
 | 常规运控（LocoMode） | 0.6 m/s | 0.7 m/s | [模型配套 cmd_range](https://github.com/ccrpRepo/RoboMimic_Deploy/blob/master/policy/loco_mode/config/LocoMode.yaml) |
 | 常规运控（RL Gym） | 0.6 m/s | 0.8 m/s | 本应用已有 command.limits |
 | 常规运控（MJLab） | 0.6 m/s | 1.0 m/s | [对应模型部署配置](https://github.com/unitreerobotics/unitree_rl_mjlab/blob/1425b15f73bd4095f0df53709d7c389c3eb9e790/deploy/robots/g1/config/policy/velocity/v0/params/deploy.yaml) |
-| SONIC 规划行走 | 0.6 m/s | 0.8 m/s | 本应用已有 command.limits |
+| SONIC 规划行走 | 0.5 m/s | 0.5 m/s | 实机调试期间暂限，见下文 |
 
 慢速前进沿用 0.6 m/s 操作预设；表中数值是下发指令，不是实测极限速度。
+SONIC 规划行走在 0.5 m/s 起步时发生过脚踝目标越界掉电，目标截幅、规划时序和驱动时序
+实机通过前保持 0.5 m/s 上限。
 快档只增加前进速度，倒退、横移、转向及加减速参数保持不变。
 三套常规运控和 SONIC 规划行走接收速度，
 舞蹈与 SONIC 静态展示的限速为零，方向键禁用。

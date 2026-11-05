@@ -41,7 +41,7 @@ BACK+START 不再接管，避免与手柄自身长按切换协议冲突。
 左摇杆上/下为前进/后退，左/右为左移/右移；
 右摇杆左/右为左转/右转，右摇杆上下不使用。推幅决定速度，松开回零。
 慢档前进上限为 0.6 m/s；快档前进按模式限幅：LocoMode 0.7 m/s、
-RL Gym 0.8 m/s、MJLab 1.0 m/s、SONIC 规划行走 0.8 m/s。
+RL Gym 0.8 m/s、MJLab 1.0 m/s；SONIC 规划行走两档都限 0.5 m/s。
 两档倒退均为 0.3 m/s、横移 0.3 m/s、转向 0.5 rad/s。
 速度配置依据与完整参数表见[手机遥控](phone_teleop.md)。
 各策略的 `command.limits` 同时约束手柄、网页与 TUI。
