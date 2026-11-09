@@ -33,17 +33,21 @@ ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资�
 SONIC 使用同一模型的 `sonic_actions` 参考目录。两者在客户端都采用“选模式，再触发动作”。
 新增动作只需配置对应目录和资源，不在 common 中写机型名或固定动作数量。
 
-SONIC 规划行走使用 `policy/sonic/planner_sonic.onnx` 生成参考，
-与静态展示共用 tracker 模型。规划在后台进行，控制线程持续使用最近的有效参考。
+SONIC 使用独立的 FP32 `model_encoder.onnx` 和 `model_decoder.onnx`，
+先将参考编码为 64 维 latent，再与 930 维本体历史拼接交给 decoder，每秒执行 50 次。
+静态展示与规划行走共用这两个模型；规划行走另用 `policy/sonic/planner_sonic.onnx`
+在后台生成参考，控制线程持续使用最近的有效参考。
 `robot_base.threads.motion_planner` 将规划线程及其 CPU 推理线程池配置到 CPU 0、3、4，
 使用 `sched: idle`，只占用 tracker 推理留下的 CPU 时间；planner 的 `runtime.threads: 3`
 包含调用线程。规划模型在选择该模式时加载并预热一次，进入 RL 不再加载。
-tracker（`rl_infer`，CPU 7）的 3 个 worker 由 `runtime.affinity: "0,3,4"` 固定在同一组核，
-关闭忙等，不再继承服务的 CPU 集合落到承担 Type-C 音频（CPU 5）、电机 USB（CPU 6）中断的核。
+encoder 和 decoder 各配置 `provider: auto, threads: 2`，K3 使用 SpaceMIT EP，PC 使用 CPU。
+两者串行执行，关闭忙等；调用线程仍为 `rl_infer`（CPU 7）。planner 当前使用 3 线程 CPU。
 驱动、控制与 RL 调用线程继续使用 CPU 1、2、7，USB 与音频的核心分配不变。
-行走中每 1 秒重新规划一次，速度变化立即触发规划。
+提前量为 40 ms；行走每 1 s、跑步每 0.1 s、爬行每 0.2 s 重规划，
+每 100 ms 检查指令变化，使用最新指令，不积压请求；推理超时跳过错过的检查拍。
+允许规划输出 9–11 个 token；迟到轨迹跳过过期部分并完成 8 帧混合。
 其他主机可按可用核心调整这组配置；`events.log` 的 `RL runtime ready`、
-`SONIC planner model ready` 记录 worker 实际落核与调度。
+`SONIC encoder ready`、`SONIC planner model ready` 记录 provider 和 worker 实际落核与调度。
 
 RL 内选择同组模式时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
 普通站走策略在零速有效推理帧交接；定时动作播放中选择其他模式会等待末帧。

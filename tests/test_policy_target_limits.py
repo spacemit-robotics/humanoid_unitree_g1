@@ -71,11 +71,22 @@ class PolicyTargetLimitsTest(unittest.TestCase):
             with self.subTest(policy=name):
                 runtime = self.policies[name]["runtime"]
                 self.assertFalse(runtime["ort_spinning"])
-                worker_cpus = {int(cpu) for cpu in runtime["affinity"].split(",")}
-                self.assertEqual(worker_cpus, planner_cpus)
+                self.assertEqual(runtime["provider"], "auto")
+                self.assertEqual(runtime["threads"], 2)
+                encoder = self.policies[name]["policy_adapter"]["encoder"]
+                self.assertEqual(encoder["runtime"], runtime)
+                self.assertEqual(encoder["latent_dim"], 64)
+                observation = self.policies[name]["observation"]
+                self.assertEqual(observation["segment_0_terms"], ["sonic_latent"])
+                self.assertEqual(observation["segment_1_length"], 10)
         planner = self.policies["sonic_planner"]["policy_adapter"]["planner"]
         self.assertFalse(planner["runtime"]["ort_spinning"])
+        self.assertEqual(planner["lookahead"], 0.04)
+        self.assertEqual(planner["check_interval"], 0.1)
         self.assertEqual(planner["replan_interval"], 1.0)
+        self.assertEqual(planner["running_replan_interval"], 0.1)
+        self.assertEqual(planner["crawling_replan_interval"], 0.2)
+        self.assertEqual(planner["allowed_pred_num_tokens"], [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0])
 
 
 if __name__ == "__main__":
