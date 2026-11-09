@@ -41,11 +41,11 @@ class RealtimeProfileTest(unittest.TestCase):
             "IPI0: 1 2 3 Rescheduling interrupts"))
         plan = PROFILE.irq_plan(interrupts, usb)
         self.assertEqual({irq: value[0] for irq, value in plan.items()},
-                         {81: 6, 82: 5, 83: 5, 84: 4, 85: 0, 86: 0, 87: 3})
+                         {81: 6, 82: 5, 83: 5, 84: 3, 85: 0, 86: 0, 87: 3})
         self.assertFalse({cpu for cpu, _ in plan.values()} & PROFILE.CONTROL_CPUS)
 
     def test_cpu_list(self):
-        self.assertEqual(PROFILE.parse_cpus("0,3-6\n"), PROFILE.HOUSEKEEPING)
+        self.assertEqual(PROFILE.parse_cpus("0,3,5-6\n"), PROFILE.HOUSEKEEPING)
 
     def test_pending_inactive_irq_does_not_abort_startup(self):
         with tempfile.TemporaryDirectory(prefix="g1_irq_test_") as directory:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
 # SPDX-License-Identifier: Apache-2.0
-"""Select full kernel preemption and keep peripheral work away from G1 CPUs 1, 2, 7.
+"""Select full kernel preemption and keep peripheral work away from G1 CPUs 1, 2, 4, 7.
 
 Run once before starting G1, not inside any control loop. Without --apply this
 only prints the plan. It does not enable motors, unload drivers or play audio.
@@ -13,9 +13,9 @@ from pathlib import Path
 import re
 import time
 
-HOUSEKEEPING = {0, 3, 4, 5, 6}
-CONTROL_CPUS = {1, 2, 7}
-USB_CONTROLLERS = {"81400000.usb3": 6, "cad00000.usb3": 5, "c0a00000.usb2": 4}
+HOUSEKEEPING = {0, 3, 5, 6}
+CONTROL_CPUS = {1, 2, 4, 7}
+USB_CONTROLLERS = {"81400000.usb3": 6, "cad00000.usb3": 5, "c0a00000.usb2": 3}
 PREEMPT_CONTROL = Path("/sys/kernel/debug/sched/preempt")
 
 
@@ -79,7 +79,7 @@ def irq_target(description, usb):
     if any(name in description for name in ("fusb301", "gpio-bank")):
         return 5
     if any(name in description for name in ("rtw89", "end1", "pcie", "PCI-MSI")):
-        return 4
+        return 3
     if any(name in description for name in ("ufshcd", "mmc", "DPU_", "pvrsrv", "v2d")):
         return 0
     return 3

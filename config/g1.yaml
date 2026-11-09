@@ -21,7 +21,8 @@ robot_base:
                 right_elbow_joint, right_wrist_roll_joint, right_wrist_pitch_joint,
                 right_wrist_yaw_joint]
   robot_dir: ".."
-  # K3: 500 Hz I/O/control on CPUs 1/2; 50 Hz inference on CPU 7.
+  # K3: 500 Hz I/O/control on CPUs 1/2; 50 Hz inference caller on CPU 7,
+  # with one CPU worker on CPU 4. Both inference cores share the same L2 cache.
   # Install the headless service profile to keep device IRQs off these CPUs.
   # Type-C audio stays on CPU 5; RLIMIT_RTPRIO >= 70 is required.
   # Runtime reports requested and effective settings; an unprivileged PC may fall back to other.
@@ -42,12 +43,11 @@ robot_base:
       priority: 70
       lock_memory: true
     # Planner and its CPU workers avoid control, motor USB and audio CPUs.
-    # SCHED_IDLE: the planner only uses CPU time the tracker workers leave.
     # No lock_memory: control_main already locks the control process; locking
     # from the planner would also lock tools that only load the model.
     motion_planner:
-      cpu_affinity: [0, 3, 4]
-      sched: idle
+      cpu_affinity: [0, 3]
+      sched: other
       priority: 0
       lock_memory: false
 
@@ -134,6 +134,8 @@ operator_gamepad:
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: sonic_planner}
     - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, B], operation: action, value: walk, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, X], operation: action, value: macarena, hold_ms: 1000, policy: sonic}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -279,11 +281,21 @@ behavior_manager:
 sonic_actions:
   default_action: standing
   transition_duration: 0.5
-  action_names: [standing]
+  action_names: [standing, walk, macarena]
   actions:
     standing:
       display_name: 平稳站立
       file: policy/sonic/standing
+      motion_fps: 50
+      loop: false
+    walk:
+      display_name: 行走转身
+      file: policy/sonic/walking_quip_360_R_002__A428
+      motion_fps: 50
+      loop: false
+    macarena:
+      display_name: 玛卡莲娜舞
+      file: policy/sonic/macarena_001__A545
       motion_fps: 50
       loop: false
 
@@ -300,6 +312,9 @@ rl_policy:
 
     policies:
       walk_rlgym:
+        # Shared CPU inference settings for every policy and the SONIC encoder.
+        # threads includes the CPU 7 caller; affinity binds the other worker.
+        runtime: &g1_cpu_runtime {provider: cpu, threads: 2, affinity: "4", ort_spinning: false}
         display_name: 常规运控（RL Gym）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -369,6 +384,7 @@ rl_policy:
         max_pitch: 0.7
 
       walk_mjlab:
+        runtime: *g1_cpu_runtime
         display_name: 常规运控（MJLab）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -454,6 +470,7 @@ rl_policy:
         entry_target_transition_duration: 0.0
 
       dance:
+        runtime: *g1_cpu_runtime
         display_name: 舞蹈
         switch_group: full_body
         # The motion clock starts with the first inference; do not lag its targets.
@@ -512,6 +529,7 @@ rl_policy:
         max_pitch: 0.7
 
       kungfu:
+        runtime: *g1_cpu_runtime
         display_name: 功夫
         switch_group: full_body
         policy_switch: {transition_duration: 0.0}
@@ -569,6 +587,7 @@ rl_policy:
         max_pitch: 0.7
 
       stand:
+        runtime: *g1_cpu_runtime
         display_name: 常规运控（LocoMode）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -668,6 +687,7 @@ rl_policy:
             jumps1: {display_name: Jumps 1, policy: tracking_wbt_jumps1}
 
       tracking:
+        runtime: *g1_cpu_runtime
         display_name: Dance 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -753,6 +773,7 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_packed:
+        runtime: *g1_cpu_runtime
         display_name: Packed
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -833,6 +854,7 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_wbt_jumps1:
+        runtime: *g1_cpu_runtime
         display_name: Jumps 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -925,6 +947,7 @@ rl_policy:
         max_pitch: 2.0
 
       protomotions_walk:
+        runtime: *g1_cpu_runtime
         display_name: 行走动作
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -998,9 +1021,7 @@ rl_policy:
 
       sonic:
         display_name: SONIC 运控
-        # auto selects SpaceMIT EP on K3 and CPU on PC. Encoder and decoder
-        # each reserve two inference workers; the calling thread stays on CPU 7.
-        runtime: {provider: auto, threads: 2, ort_spinning: false}
+        runtime: *g1_cpu_runtime
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # GEAR-SONIC: reference -> encoder -> latent + history -> decoder.
@@ -1076,7 +1097,7 @@ rl_policy:
             model_path: policy/sonic/model_encoder.onnx
             observation_term: sonic_latent
             latent_dim: 64
-            runtime: {provider: auto, threads: 2, ort_spinning: false}
+            runtime: *g1_cpu_runtime
           catalog: sonic_actions
           reference_file: "policy/sonic/standing"
           motion_fps: 50
@@ -1087,7 +1108,7 @@ rl_policy:
 
       sonic_planner:
         display_name: SONIC 运控（规划行走）
-        runtime: {provider: auto, threads: 2, ort_spinning: false}
+        runtime: *g1_cpu_runtime
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         model_path: "policy/sonic/model_decoder.onnx"
@@ -1162,7 +1183,7 @@ rl_policy:
             model_path: policy/sonic/model_encoder.onnx
             observation_term: sonic_latent
             latent_dim: 64
-            runtime: {provider: auto, threads: 2, ort_spinning: false}
+            runtime: *g1_cpu_runtime
           motion_fps: 50
           future_frames: 10
           future_step: 5
@@ -1185,7 +1206,7 @@ rl_policy:
             allowed_pred_num_tokens: [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0]
             runtime:
               provider: cpu
-              threads: 3
+              threads: 2
               ort_spinning: false
 
 # ============================================================

@@ -122,7 +122,7 @@ class ServiceTest(unittest.TestCase):
                           return_value=subprocess.CompletedProcess([], 0, "enabled\n")) as run:
             INSTALLER.install_headless(self.root, path)
         dropin = (self.root / "g1.service.d/50-headless.conf").read_text(encoding="utf-8")
-        self.assertIn("CPUAffinity=0 3 4 5 6\n", dropin)
+        self.assertIn("CPUAffinity=0 3 5 6\n", dropin)
         self.assertIn("ExecStartPre=+/usr/bin/python3 ", dropin)
         self.assertIn("configure_g1_realtime.py --apply\n", dropin)
         commands = [call.args[0] for call in run.call_args_list]
