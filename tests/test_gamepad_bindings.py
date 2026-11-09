@@ -39,7 +39,6 @@ class GamepadBindingsTest(unittest.TestCase):
             ("RT+UP", "dance_mode"): ("action", "jumps1", 1000, "press"),
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
-            ("Y", "stand"): ("preset", "toggle", 0, "tap"),
             ("Y", "sonic_planner"): ("preset", "toggle", 0, "tap"),
             ("RT+A", "sonic"): ("action", "standing", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
@@ -71,7 +70,7 @@ class GamepadBindingsTest(unittest.TestCase):
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
         self.assertEqual(policies["stand"]["command"]["scale"], [1.0, 1.0, 1.0])
         self.assertEqual(policies["stand"]["command"]["limits"],
-                         {"min_vx": -0.3, "max_vx": 0.7, "max_vy": 0.4, "max_wz": 1.57})
+                         {"min_vx": -0.4, "max_vx": 0.7, "max_vy": 0.4, "max_wz": 1.57})
         for name in ("dance", "kungfu"):
             self.assertEqual(policies[name]["action_blend_ratio"], 1.0)
 
@@ -121,16 +120,19 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(teleop["acceleration"], [1.0, 1.0, 2.0])
         self.assertEqual(teleop["deceleration"], [2.5, 0.5, 2.5])
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
-        forward_limits = {"stand": 0.7, "walk_mjlab": 1.0, "walk_rlgym": 0.8, "sonic_planner": 0.5}
+        forward_limits = {"stand": 0.7, "walk_mjlab": 1.0, "walk_rlgym": 0.8, "sonic_planner": 0.8}
+        reverse_limits = {"stand": 0.4, "walk_mjlab": 0.5, "walk_rlgym": 0.6, "sonic_planner": 0.3}
         for name, forward in forward_limits.items():
             with self.subTest(policy=name):
                 limits = policies[name]["command"]["limits"]
-                self.assertEqual(limits["min_vx"], -0.3)
+                presets = policies[name]["command"].get("teleop", teleop)
+                self.assertEqual(limits["min_vx"], -reverse_limits[name])
                 self.assertEqual(limits["max_vx"], forward)
-                self.assertEqual(min(teleop["slow_limits"][0], limits["max_vx"]), min(0.6, forward))
-                self.assertEqual(min(teleop["fast_limits"][0], limits["max_vx"]), forward)
+                self.assertEqual(min(presets["slow_limits"][0], limits["max_vx"]),
+                                 0.7 if name == "stand" else 0.6)
+                self.assertEqual(min(presets["fast_limits"][0], limits["max_vx"]), forward)
                 for preset in ("slow_limits", "fast_limits"):
-                    self.assertEqual(max(-teleop[preset][0], limits["min_vx"]), -0.3)
+                    self.assertEqual(max(-presets[preset][0], limits["min_vx"]), -reverse_limits[name])
                 self.assertGreaterEqual(limits["max_vy"], 0.3)
                 self.assertGreaterEqual(limits["max_wz"], 0.5)
 

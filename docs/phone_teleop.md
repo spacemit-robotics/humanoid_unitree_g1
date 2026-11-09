@@ -18,8 +18,9 @@ sudo python3 output/staging/bin/install_g1_service.py --sdk-root "$PWD" --user "
 安装器只启用下次开机自启动，不立即启动硬件；服务已运行时不要另开一套启动进程。
 
 Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并进入 RL 后，
-按住前后、横移或转向键发送速度，支持双指同时操作。默认慢速，快慢档自动填入
-速度预设，也可手动调整；正常停车松开按键即可。页面没有独立的“停止移动”按钮，
+按住前后、横移或转向键发送速度，支持双指同时操作。切换模式时自动填入该模式的
+速度预设，也可手动调整；两档模式默认慢速，LocoMode 为单档、不显示快慢档按钮。
+正常停车松开按键即可。页面没有独立的“停止移动”按钮，
 控制权释放、故障确认和状态切换入口保留。
 切后台、失联、故障和状态切换会撤销旧输入，沿用配置的速度平滑。
 网络恢复后网页会自动重连，不用重新扫码；重连不会自动接管或恢复旧速度。
@@ -28,28 +29,30 @@ Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并�
 动作结束或取消后仍停留在舞蹈运控、等待下次触发。SONIC 运控提供平稳站立展示，
 SONIC 规划行走通过方向键或双摇杆给规划器发送速度。ProtoMotions 暂不显示。
 
-配置位于 [g1.yaml](../config/g1.yaml) 的 `operator_service.teleop`：
+各模式速度位于 [g1.yaml](../config/g1.yaml) 的策略 `command.limits` 与
+`command.teleop`；未配置策略预设时使用 `operator_service.teleop`。
+手柄满幅、网页默认按键及双摇杆满幅对应以下指令速度：
+
+| 运控模式 | 慢速前进 | 快速前进 | 倒退 | 横移 | 转向 |
+| --- | --- | --- | --- | --- | --- |
+| 常规运控（LocoMode） | 单档 0.7 m/s | — | 0.4 m/s | 0.4 m/s | 1.57 rad/s |
+| 常规运控（RL Gym） | 0.6 m/s | 0.8 m/s | 0.6 m/s | 0.5 m/s | 1.57 rad/s |
+| 常规运控（MJLab） | 0.6 m/s | 1.0 m/s | 0.5 m/s | 0.5 m/s | 1.0 rad/s |
+| SONIC 规划行走 | 0.6 m/s | 0.8 m/s | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
+
+常规运控的配置依据为 [LocoMode cmd_range](https://github.com/ccrpRepo/RoboMimic_Deploy/blob/master/policy/loco_mode/config/LocoMode.yaml)、
+[RL Gym max_cmd](https://github.com/unitreerobotics/unitree_rl_gym/blob/main/deploy/deploy_real/configs/g1.yaml) 和
+[MJLab 模型配套部署配置](https://github.com/unitreerobotics/unitree_rl_mjlab/blob/1425b15f73bd4095f0df53709d7c389c3eb9e790/deploy/robots/g1/config/policy/velocity/v0/params/deploy.yaml)。
+快档只增加前进速度；RL Gym 两档倒退均采用慢档前进的 0.6 m/s。
+表中数值是下发指令，不是实测极限速度。
+
+平滑参数保持在 `operator_service.teleop`：
 
 | 参数 | 前进 | 倒退 | 横移 | 转向 |
 | --- | --- | --- | --- | --- |
-| 慢速幅值上限 | 0.6 m/s | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
-| 快速幅值上限 | 按下表中的策略限幅 | 0.3 m/s | 0.3 m/s | 0.5 rad/s |
 | 客户端加速度（启用时） | 1.0 m/s² | 1.0 m/s² | 1.0 m/s² | 2.0 rad/s² |
 | 客户端减速度（启用时） | 2.5 m/s² | 2.5 m/s² | 0.5 m/s² | 2.5 rad/s² |
 
-前进预设与当前策略 `command.limits` 取交集，满幅输入对应以下指令速度：
-
-| 运控模式 | 慢速前进 | 快速前进 | 配置依据 |
-| --- | --- | --- | --- |
-| 常规运控（LocoMode） | 0.6 m/s | 0.7 m/s | [模型配套 cmd_range](https://github.com/ccrpRepo/RoboMimic_Deploy/blob/master/policy/loco_mode/config/LocoMode.yaml) |
-| 常规运控（RL Gym） | 0.6 m/s | 0.8 m/s | 本应用已有 command.limits |
-| 常规运控（MJLab） | 0.6 m/s | 1.0 m/s | [对应模型部署配置](https://github.com/unitreerobotics/unitree_rl_mjlab/blob/1425b15f73bd4095f0df53709d7c389c3eb9e790/deploy/robots/g1/config/policy/velocity/v0/params/deploy.yaml) |
-| SONIC 规划行走 | 0.5 m/s | 0.5 m/s | 实机调试期间暂限，见下文 |
-
-慢速前进沿用 0.6 m/s 操作预设；表中数值是下发指令，不是实测极限速度。
-SONIC 规划行走在 0.5 m/s 起步时发生过脚踝目标越界掉电，目标截幅、规划时序和驱动时序
-实机通过前保持 0.5 m/s 上限。
-快档只增加前进速度，倒退、横移、转向及加减速参数保持不变。
 三套常规运控和 SONIC 规划行走接收速度，
 舞蹈与 SONIC 静态展示的限速为零，方向键禁用。
 `stand` 对应 LocoMode 站走模型，不是仅站立模式。

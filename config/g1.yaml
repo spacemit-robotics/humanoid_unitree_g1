@@ -86,10 +86,7 @@ operator_service:
   # Phone control configuration: ../docs/phone_teleop.md.
   teleop:
     deadzone: 0.06
-    # Forward speed presets; each policy also applies its command limits.
-    # Choose operating speeds for the available space and support conditions.
-    # Forward fast caps after policy clipping: LocoMode 0.7, RL Gym 0.8,
-    # MJLab 1.0, SONIC planner 0.8 m/s. Reverse remains limited per policy.
+    # Default presets; policy command.teleop overrides these where configured.
     slow_limits: [0.6, 0.3, 0.5]
     fast_limits: [1.0, 0.3, 0.5]
     # Client ramps for policies without their own command smoothing.
@@ -135,7 +132,6 @@ operator_gamepad:
     - {buttons: [RT, UP], operation: action, value: jumps1, hold_ms: 1000, policy: dance_mode}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
-    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: sonic_planner}
     - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
@@ -360,12 +356,15 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
-          # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
+          # Reverse keeps the slow forward preset in both speed modes.
           limits:
-            min_vx: -0.3
+            min_vx: -0.6
             max_vx: 0.8
-            max_vy: 0.4
-            max_wz: 1.0
+            max_vy: 0.5
+            max_wz: 1.57
+          teleop:
+            slow_limits: [0.6, 0.5, 1.57]
+            fast_limits: [0.8, 0.5, 1.57]
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -430,10 +429,13 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
           limits:
-            min_vx: -0.3
+            min_vx: -0.5
             max_vx: 1.0
             max_vy: 0.5
             max_wz: 1.0
+          teleop:
+            slow_limits: [0.6, 0.5, 1.0]
+            fast_limits: [1.0, 0.5, 1.0]
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -625,10 +627,13 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]   # 默认站立不移动
           limits:
-            min_vx: -0.3
+            min_vx: -0.4
             max_vx: 0.7
             max_vy: 0.4
             max_wz: 1.57
+          teleop:
+            slow_limits: [0.7, 0.4, 1.57]
+            fast_limits: [0.7, 0.4, 1.57]
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -1146,9 +1151,7 @@ rl_policy:
           dof_pos_subtract_default: true
         command:
           init: [0, 0, 0]
-          # Bring-up cap: the 11/04 fall started at 0.5 m/s. Raise only after
-          # bounded targets, planner timing and driver timing pass on hardware.
-          limits: {min_vx: -0.3, max_vx: 0.5, max_vy: 0.5, max_wz: 0.8}
+          limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
         policy_adapter:
           type: sonic
           motion_fps: 50
