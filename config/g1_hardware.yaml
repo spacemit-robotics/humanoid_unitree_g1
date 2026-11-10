@@ -5,7 +5,8 @@
 schema_version: 2
 whole_body:
   cycle_s: 0.002
-  startup_feedback_timeout_s: 2.0
+  # Allow cold-boot motor initialization; proceed as soon as feedback is ready.
+  startup_feedback_timeout_s: 10.0
   feedback_timeout_s: 0.01  # Beyond 10 ms, hold the last valid motor targets without disabling.
   # Total recovery bound; per-transaction waits remain 5 ms.
   communication_tolerance_s: 0.20
