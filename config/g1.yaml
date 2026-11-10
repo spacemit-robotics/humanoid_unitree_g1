@@ -29,8 +29,8 @@ robot_base:
   threads:
     rl_infer:       # RL 推理线程
       cpu_id: 7
-      sched: fifo
-      priority: 55
+      sched: &rl_infer_sched fifo
+      priority: &rl_infer_priority 55
       lock_memory: true
     control_main:   # control_demo 主控制循环
       cpu_id: 2
@@ -320,7 +320,13 @@ rl_policy:
       walk_rlgym:
         # Shared CPU inference settings for every policy and the SONIC encoder.
         # threads includes the CPU 7 caller; affinity binds the other worker.
-        runtime: &g1_cpu_runtime {provider: cpu, threads: 2, affinity: "4", ort_spinning: false}
+        runtime: &g1_cpu_runtime
+          provider: cpu
+          threads: 2
+          affinity: "4"
+          ort_spinning: false
+          worker_sched: *rl_infer_sched
+          worker_priority: *rl_infer_priority
         display_name: 常规运控（RL Gym）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}

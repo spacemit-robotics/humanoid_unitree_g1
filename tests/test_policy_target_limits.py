@@ -65,14 +65,17 @@ class PolicyTargetLimitsTest(unittest.TestCase):
         threads = self.config["robot_base"]["threads"]
         planner_cpus = set(threads["motion_planner"]["cpu_affinity"])
         reserved = {threads[name]["cpu_id"] for name in ("rl_infer", "control_main", "driver_main")}
-        self.assertEqual(threads["motion_planner"]["sched"], "idle")
-        self.assertFalse(planner_cpus & (reserved | {5, 6}))
+        self.assertEqual(threads["motion_planner"]["sched"], "other")
+        self.assertFalse(planner_cpus & (reserved | {4, 5, 6}))
         for name in ("sonic", "sonic_planner"):
             with self.subTest(policy=name):
                 runtime = self.policies[name]["runtime"]
                 self.assertFalse(runtime["ort_spinning"])
-                self.assertEqual(runtime["provider"], "auto")
+                self.assertEqual(runtime["provider"], "cpu")
                 self.assertEqual(runtime["threads"], 2)
+                self.assertEqual(runtime["affinity"], "4")
+                self.assertEqual(runtime["worker_sched"], threads["rl_infer"]["sched"])
+                self.assertEqual(runtime["worker_priority"], threads["rl_infer"]["priority"])
                 encoder = self.policies[name]["policy_adapter"]["encoder"]
                 self.assertEqual(encoder["runtime"], runtime)
                 self.assertEqual(encoder["latent_dim"], 64)
