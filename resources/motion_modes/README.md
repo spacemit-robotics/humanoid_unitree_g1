@@ -10,7 +10,7 @@
 | 常规运控（MJLab） | `walk_mjlab` | 零速站立，收到速度后行走 | 无 |
 | 常规运控（RL Gym） | `walk_rlgym` | 零速仍踏步，收到速度后行走 | 无 |
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、行走转身、玛卡莲娜舞 |
+| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞 |
 | SONIC 运控（规划行走） | `sonic_planner` | 站立，收到速度后由规划器生成参考 | 无 |
 
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
@@ -28,6 +28,7 @@ ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资�
 | Packed | `packed` | `tracking_packed` | `policy/tracking_packed/`，配套参考 131.48 秒 |
 | Jumps 1 | `jumps1` | `tracking_wbt_jumps1` | `policy/tracking_wbt_jumps1/`，配套参考 244.44 秒 |
 | 平稳站立 | `standing` | `sonic` | `policy/sonic/standing/`，两帧相同的中性姿态参考 |
+| 慢走 | `slow_walk` | `sonic` | `policy/sonic/slow_walk/`，5.46 秒，起步、向前四步、停稳 |
 | 行走转身 | `walk` | `sonic` | `policy/sonic/walking_quip_360_R_002__A428/`，9.10 秒 |
 | 玛卡莲娜舞 | `macarena` | `sonic` | `policy/sonic/macarena_001__A545/`，27.50 秒 |
 
@@ -37,8 +38,13 @@ SONIC 使用同一模型的 `sonic_actions` 参考目录。两者在客户端都
 SONIC 的行走转身和舞蹈使用 GEAR-SONIC 的 G1 示例参考，每个目录提供
 `joint_pos.csv`、`joint_vel.csv`、`body_quat.csv`，50 Hz，关节顺序保持模型顺序。
 TUI 按 A 选择动作，播放期间按 C 取消回到站立；网页复用同一动作列表。
-完整播放后保持末帧，可从列表再次选择平稳站立或其他动作。
+慢走的末尾回到中性站姿并保持；其他动作完整播放后保持末帧。
+可从列表再次选择平稳站立或其他动作。
 手柄 RT+A/B/X 分别触发站立、行走转身、玛卡莲娜舞，均长按 1 秒。
+RT+↑ 长按 1 秒触发完整慢走。慢走采用 BONES-SEED 的 G1 起步、连续行走和
+停步参考，120 Hz 重采样为 50 Hz，再按左右脚落地相位裁剪、交叠衔接。
+保留原始迈步节奏，末尾过渡到配置的 SONIC 中性站姿；每次触发只播放一次。
+这些外部动作资源需依照 BONES-SEED 许可获取，不随源码再分发。
 这是参考动作播放；自由行走速度指令仍使用 SONIC 规划行走模式。
 
 SONIC 使用独立的 FP32 `model_encoder.onnx` 和 `model_decoder.onnx`，

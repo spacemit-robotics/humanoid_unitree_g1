@@ -41,6 +41,9 @@ class GamepadBindingsTest(unittest.TestCase):
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
             ("Y", "sonic_planner"): ("preset", "toggle", 0, "tap"),
             ("RT+A", "sonic"): ("action", "standing", 1000, "press"),
+            ("RT+B", "sonic"): ("action", "walk", 1000, "press"),
+            ("RT+X", "sonic"): ("action", "macarena", 1000, "press"),
+            ("RT+UP", "sonic"): ("action", "slow_walk", 1000, "press"),
             ("RT", ""): ("cancel", "", 1000, "press"),
         }
         actual = {
@@ -64,7 +67,8 @@ class GamepadBindingsTest(unittest.TestCase):
             self.assertEqual(policy["switch_group"], "full_body")
             if name not in ("stand", "walk_mjlab", "walk_rlgym", "sonic_planner"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
-        self.assertEqual(self.config["sonic_actions"]["action_names"], ["standing"])
+        self.assertEqual(self.config["sonic_actions"]["action_names"],
+                         ["standing", "slow_walk", "walk", "macarena"])
 
     def test_locomode_commands_and_motion_actions(self):
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]

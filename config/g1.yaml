@@ -136,6 +136,7 @@ operator_gamepad:
     - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
     - {buttons: [RT, B], operation: action, value: walk, hold_ms: 1000, policy: sonic}
     - {buttons: [RT, X], operation: action, value: macarena, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, UP], operation: action, value: slow_walk, hold_ms: 1000, policy: sonic}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -281,11 +282,16 @@ behavior_manager:
 sonic_actions:
   default_action: standing
   transition_duration: 0.5
-  action_names: [standing, walk, macarena]
+  action_names: [standing, slow_walk, walk, macarena]
   actions:
     standing:
       display_name: 平稳站立
       file: policy/sonic/standing
+      motion_fps: 50
+      loop: false
+    slow_walk:
+      display_name: 慢走
+      file: policy/sonic/slow_walk
       motion_fps: 50
       loop: false
     walk:
