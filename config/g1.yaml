@@ -21,15 +21,16 @@ robot_base:
                 right_elbow_joint, right_wrist_roll_joint, right_wrist_pitch_joint,
                 right_wrist_yaw_joint]
   robot_dir: ".."
-  # K3: 500 Hz I/O/control on CPUs 1/2; 50 Hz inference on CPU 7.
+  # K3: 500 Hz I/O/control on CPUs 1/2; 50 Hz inference caller on CPU 7,
+  # with one CPU worker on CPU 4. Both inference cores share the same L2 cache.
   # Install the headless service profile to keep device IRQs off these CPUs.
   # Type-C audio stays on CPU 5; RLIMIT_RTPRIO >= 70 is required.
   # Runtime reports requested and effective settings; an unprivileged PC may fall back to other.
   threads:
     rl_infer:       # RL 推理线程
       cpu_id: 7
-      sched: fifo
-      priority: 55
+      sched: &rl_infer_sched fifo
+      priority: &rl_infer_priority 55
       lock_memory: true
     control_main:   # control_demo 主控制循环
       cpu_id: 2
@@ -41,11 +42,14 @@ robot_base:
       sched: fifo
       priority: 70
       lock_memory: true
-    motion_planner: # Planner and its CPU workers avoid control, motor USB and audio CPUs.
-      cpu_affinity: [0, 3, 4]
+    # Planner and its CPU workers avoid control, motor USB and audio CPUs.
+    # No lock_memory: control_main already locks the control process; locking
+    # from the planner would also lock tools that only load the model.
+    motion_planner:
+      cpu_affinity: [0, 3]
       sched: other
       priority: 0
-      lock_memory: true
+      lock_memory: false
 
   # 默认 PD 增益（顺序：左腿6 + 右腿6 + 腰3 + 左臂7 + 右臂7）
   kp: &g1_pose_kp [100, 100, 100, 200, 20, 20,    # 左腿
@@ -82,11 +86,9 @@ operator_service:
   # Phone control configuration: ../docs/phone_teleop.md.
   teleop:
     deadzone: 0.06
-    # Forward speed presets; each policy also applies its command limits.
-    # Choose operating speeds for the available space and support conditions.
-    # Public walking models retain their own command limits.
-    slow_limits: [0.3, 0.3, 0.5]
-    fast_limits: [0.5, 0.3, 0.5]
+    # Default presets; policy command.teleop overrides these where configured.
+    slow_limits: [0.6, 0.3, 0.5]
+    fast_limits: [1.0, 0.3, 0.5]
     # Client ramps for policies without their own command smoothing.
     # [vx, vy, wz], in m/s^2, m/s^2, rad/s^2.
     acceleration: [1.0, 1.0, 2.0]
@@ -130,9 +132,11 @@ operator_gamepad:
     - {buttons: [RT, UP], operation: action, value: jumps1, hold_ms: 1000, policy: dance_mode}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_mjlab}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: walk_rlgym}
-    - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: stand}
     - {buttons: [Y], operation: preset, value: toggle, trigger: tap, policy: sonic_planner}
     - {buttons: [RT, A], operation: action, value: standing, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, B], operation: action, value: walk, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, X], operation: action, value: macarena, hold_ms: 1000, policy: sonic}
+    - {buttons: [RT, UP], operation: action, value: slow_walk, hold_ms: 1000, policy: sonic}
     - {buttons: [RT], operation: cancel, hold_ms: 1000}
 
 # Offline WAV playback is isolated from driver/control and disabled in simulation.
@@ -278,11 +282,26 @@ behavior_manager:
 sonic_actions:
   default_action: standing
   transition_duration: 0.5
-  action_names: [standing]
+  action_names: [standing, slow_walk, walk, macarena]
   actions:
     standing:
       display_name: 平稳站立
       file: policy/sonic/standing
+      motion_fps: 50
+      loop: false
+    slow_walk:
+      display_name: 慢走
+      file: policy/sonic/slow_walk
+      motion_fps: 50
+      loop: false
+    walk:
+      display_name: 行走转身
+      file: policy/sonic/walking_quip_360_R_002__A428
+      motion_fps: 50
+      loop: false
+    macarena:
+      display_name: 玛卡莲娜舞
+      file: policy/sonic/macarena_001__A545
       motion_fps: 50
       loop: false
 
@@ -299,6 +318,15 @@ rl_policy:
 
     policies:
       walk_rlgym:
+        # Shared CPU inference settings for every policy and the SONIC encoder.
+        # threads includes the CPU 7 caller; affinity binds the other worker.
+        runtime: &g1_cpu_runtime
+          provider: cpu
+          threads: 2
+          affinity: "4"
+          ort_spinning: false
+          worker_sched: *rl_infer_sched
+          worker_priority: *rl_infer_priority
         display_name: 常规运控（RL Gym）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -355,16 +383,20 @@ rl_policy:
         command:
           scale: [2.0, 2.0, 0.25]
           init: [0.0, 0.0, 0.0]
-          # 应用层速度范围；从原 hmi.velocity 全局配置迁移，数值保持不变。
+          # Reverse keeps the slow forward preset in both speed modes.
           limits:
-            min_vx: -0.3
+            min_vx: -0.6
             max_vx: 0.8
-            max_vy: 0.4
-            max_wz: 1.0
+            max_vy: 0.5
+            max_wz: 1.57
+          teleop:
+            slow_limits: [0.6, 0.5, 1.57]
+            fast_limits: [0.8, 0.5, 1.57]
         max_roll: 0.7
         max_pitch: 0.7
 
       walk_mjlab:
+        runtime: *g1_cpu_runtime
         display_name: 常规运控（MJLab）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -425,10 +457,13 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]
           limits:
-            min_vx: -0.3
-            max_vx: 0.5
+            min_vx: -0.5
+            max_vx: 1.0
             max_vy: 0.5
             max_wz: 1.0
+          teleop:
+            slow_limits: [0.6, 0.5, 1.0]
+            fast_limits: [1.0, 0.5, 1.0]
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -447,11 +482,16 @@ rl_policy:
         entry_target_transition_duration: 0.0
 
       dance:
+        runtime: *g1_cpu_runtime
         display_name: 舞蹈
         switch_group: full_body
         # The motion clock starts with the first inference; do not lag its targets.
         policy_switch: {transition_duration: 0.0}
         model_path: "policy/dance/dance_0605.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: actor_obs, source: observation}
@@ -501,10 +541,15 @@ rl_policy:
         max_pitch: 0.7
 
       kungfu:
+        runtime: *g1_cpu_runtime
         display_name: 功夫
         switch_group: full_body
         policy_switch: {transition_duration: 0.0}
         model_path: "policy/kungfu/kungfu_0609.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: actor_obs, source: observation}
@@ -554,6 +599,7 @@ rl_policy:
         max_pitch: 0.7
 
       stand:
+        runtime: *g1_cpu_runtime
         display_name: 常规运控（LocoMode）
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -612,10 +658,13 @@ rl_policy:
           scale: [1.0, 1.0, 1.0]
           init: [0.0, 0.0, 0.0]   # 默认站立不移动
           limits:
-            min_vx: -0.3
+            min_vx: -0.4
             max_vx: 0.7
             max_vy: 0.4
             max_wz: 1.57
+          teleop:
+            slow_limits: [0.7, 0.4, 1.57]
+            fast_limits: [0.7, 0.4, 1.57]
         max_roll: 0.7
         max_pitch: 0.7
 
@@ -650,11 +699,16 @@ rl_policy:
             jumps1: {display_name: Jumps 1, policy: tracking_wbt_jumps1}
 
       tracking:
+        runtime: *g1_cpu_runtime
         display_name: Dance 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（纯 actor + 外挂 npz，obs 160 维 / action 29 维）
         model_path: "policy/tracking/policy.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: obs, source: observation}
@@ -731,11 +785,16 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_packed:
+        runtime: *g1_cpu_runtime
         display_name: Packed
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # unitree_rl_mjlab motion tracking（包装版 ONNX，motion 提取为 npz 使用）
         model_path: "policy/tracking_packed/policy_packed_0430.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         # 包装版额外携带 time_step 和参考运动输出；当前 motion 仍由 npz/helper 提供，
         # 因此显式固定 time_step=0，并明确忽略未消费输出，禁止静默降级。
         model_io:
@@ -807,12 +866,17 @@ rl_policy:
         max_pitch: 0.7
 
       tracking_wbt_jumps1:
+        runtime: *g1_cpu_runtime
         display_name: Jumps 1
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
         # BeyondMimic (whole_body_tracking) + LAFAN1 jumps1_subject1 跳跃动作（244s）
         # onnx 关节顺序为 IsaacSim 左右交替，通过 action_joint_index 映射到 URDF 顺序
         model_path: "policy/tracking_wbt_jumps1/policy.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: obs, source: observation}
@@ -895,6 +959,7 @@ rl_policy:
         max_pitch: 2.0
 
       protomotions_walk:
+        runtime: *g1_cpu_runtime
         display_name: 行走动作
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
@@ -903,6 +968,10 @@ rl_policy:
           init: [0, 0, 0]
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
         model_path: "policy/protomotions/unified_pipeline.onnx"
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
             - {name: current_anchor_rot, source: external}
@@ -964,18 +1033,22 @@ rl_policy:
 
       sonic:
         display_name: SONIC 运控
-        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        runtime: *g1_cpu_runtime
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
+        # GEAR-SONIC: reference -> encoder -> latent + history -> decoder.
         command:
           init: [0, 0, 0]
           limits: {max_vx: 0, max_vy: 0, max_wz: 0}
-        model_path: "policy/sonic/sonic_release_unified.onnx"
+        model_path: "policy/sonic/model_decoder.onnx"
+        custom_array_dims: {sonic_latent: 64}
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
-            - {name: reference_obs, source: external}
-            - {name: proprio_history, source: observation}
+            - {name: obs_dict, source: observation}
           outputs:
             - {name: action, target: action}
         # ONNX action[i]（IsaacLab 顺序）-> URDF joint[action_joint_index[i]]。
@@ -1018,11 +1091,12 @@ rl_policy:
              0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
              0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
         observation:
-          segment_0_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
-          segment_0_mode: flat_history
-          segment_0_length: 10
-          segment_0_order: oldest_first
-          segment_0_include_current: true
+          segment_0_terms: [sonic_latent]
+          segment_1_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
+          segment_1_mode: flat_history
+          segment_1_length: 10
+          segment_1_order: oldest_first
+          segment_1_include_current: true
           strict_dim_check: true
           ang_vel_scale: 1.0
           dof_pos_scale: 1.0
@@ -1031,6 +1105,11 @@ rl_policy:
           dof_pos_subtract_default: true
         policy_adapter:
           type: sonic
+          encoder:
+            model_path: policy/sonic/model_encoder.onnx
+            observation_term: sonic_latent
+            latent_dim: 64
+            runtime: *g1_cpu_runtime
           catalog: sonic_actions
           reference_file: "policy/sonic/standing"
           motion_fps: 50
@@ -1041,15 +1120,18 @@ rl_policy:
 
       sonic_planner:
         display_name: SONIC 运控（规划行走）
-        runtime: {provider: cpu, threads: 4, ort_spinning: false}
+        runtime: *g1_cpu_runtime
         switch_group: full_body
         policy_switch: {transition_duration: 0.5}
-        # GEAR-SONIC release：官方 encoder + decoder 合并为单个 ONNX。
-        model_path: "policy/sonic/sonic_release_unified.onnx"
+        model_path: "policy/sonic/model_decoder.onnx"
+        custom_array_dims: {sonic_latent: 64}
+        # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
+        target_position_lower: *joint_lower
+        target_position_upper: *joint_upper
+        target_limit_margin: 0.0
         model_io:
           inputs:
-            - {name: reference_obs, source: external}
-            - {name: proprio_history, source: observation}
+            - {name: obs_dict, source: observation}
           outputs:
             - {name: action, target: action}
         # ONNX action[i]（IsaacLab 顺序）-> URDF joint[action_joint_index[i]]。
@@ -1092,11 +1174,12 @@ rl_policy:
              0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068,
              0.907, 0.907, 0.907, 0.907, 0.907, 1.068, 1.068]
         observation:
-          segment_0_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
-          segment_0_mode: flat_history
-          segment_0_length: 10
-          segment_0_order: oldest_first
-          segment_0_include_current: true
+          segment_0_terms: [sonic_latent]
+          segment_1_terms: [ang_vel, dof_pos, dof_vel, last_action, gravity]
+          segment_1_mode: flat_history
+          segment_1_length: 10
+          segment_1_order: oldest_first
+          segment_1_include_current: true
           strict_dim_check: true
           ang_vel_scale: 1.0
           dof_pos_scale: 1.0
@@ -1105,9 +1188,14 @@ rl_policy:
           dof_pos_subtract_default: true
         command:
           init: [0, 0, 0]
-          limits: {max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
+          limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
         policy_adapter:
           type: sonic
+          encoder:
+            model_path: policy/sonic/model_encoder.onnx
+            observation_term: sonic_latent
+            latent_dim: 64
+            runtime: *g1_cpu_runtime
           motion_fps: 50
           future_frames: 10
           future_step: 5
@@ -1116,17 +1204,21 @@ rl_policy:
             model_path: policy/sonic/planner_sonic.onnx
             mode: -1
             output_fps: 50
-            replan_interval: 0.5
-            lookahead: 0.8
+            # Check the latest command at 10 Hz; unchanged commands follow the mode cadence.
+            check_interval: 0.1
+            replan_interval: 1.0
+            running_replan_interval: 0.1
+            crawling_replan_interval: 0.2
+            lookahead: 0.04
             default_height: 0.788740
             facing_horizon: 1.0
             slow_walk_max_speed: 0.8
             walk_max_speed: 2.5
             random_seed: 1234
-            allowed_pred_num_tokens: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+            allowed_pred_num_tokens: [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0]
             runtime:
               provider: cpu
-              threads: 3
+              threads: 2
               ort_spinning: false
 
 # ============================================================

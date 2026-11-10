@@ -24,6 +24,8 @@ def main():
     parser.add_argument("--initial", help="Initial mode; defaults to the machine configuration")
     parser.add_argument("--transition-duration", type=float, help="Override live handoff duration for comparison")
     parser.add_argument("--idle-policy", help="Override action-mode standby policy in the test copy")
+    parser.add_argument("--no-lock-memory", action="store_true",
+                        help="Disable thread memory locking in the test copy (hosts with a low RLIMIT_MEMLOCK)")
     parser.add_argument("--policies", nargs="*", default=["stand", "walk_mjlab", "walk_rlgym", "walk_mjlab"])
     args = parser.parse_args()
     machine = Path(__file__).resolve().parents[2]
@@ -72,6 +74,9 @@ def main():
             parser.error("Transition duration must be nonnegative")
         for policy in config["rl_policy"]["onnx_infer"]["policies"].values():
             policy["policy_switch"] = {"transition_duration": args.transition_duration}
+    if args.no_lock_memory:
+        for thread in config["robot_base"]["threads"].values():
+            thread["lock_memory"] = False
     config["transport"]["type"] = "shm"
     config["transport"]["shm"]["prefix"] = f"g1_policy_test_{os.getpid()}"
     config["logging"]["directory"] = str(output / "logs")

@@ -120,8 +120,8 @@ def install_headless(sdk_root, unit_path=UNIT_PATH):
         shutil.copy2(dropin, dropin.with_name(f"{dropin.name}.{stamp}.bak"))
     dropin.write_text(
         "[Service]\n"
-        "# Background log/HMI tasks inherit this; YAML assigns main loops to 1/2/7.\n"
-        "CPUAffinity=0 3 4 5 6\n"
+        "# Background log/HMI tasks inherit this; YAML reserves 1/2 and RL 4/7.\n"
+        "CPUAffinity=0 3 5 6\n"
         f"ExecStartPre=+/usr/bin/python3 {sdk_root}/output/staging/bin/configure_g1_realtime.py --apply\n",
         encoding="utf-8")
     subprocess.run(["systemctl", "disable", "--now", *DESKTOP_UNITS[:3]], check=True)

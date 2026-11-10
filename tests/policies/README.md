@@ -55,6 +55,8 @@ LocoMode 在 0.2 m/s 前进指令下可能仅调整平衡姿态，0.3 m/s 可用
 `--viewer` 显示仿真窗口，`--initial <ID>` 选择初始策略。
 `--transition-duration <秒数>` 仅覆盖测试副本中的交接时长，用于对比；不修改机型配置。
 `--idle-policy <策略 ID>` 仅替换测试副本的动作模式待命策略，用于交接对比。
+`--no-lock-memory` 关闭测试副本的线程内存锁定。control 进程锁定内存后，SONIC 规划器（约 774 MB）
+等大模型受 `RLIMIT_MEMLOCK` 限制，开发机默认上限不够时初始化会报内存分配失败。
 `--policy-trace` 记录逐帧观测、动作及关节目标，用于与模型配套控制计算对照。
 结果及完整进程日志存于脚本打印的 `output/g1_policy_sim_*` 目录。
 

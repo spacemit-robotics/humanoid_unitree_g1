@@ -21,9 +21,12 @@ ctest --test-dir output/build/g1_tests --output-on-failure
 耦合测试需要 `resources/kinematics/` 下配套 CSV；策略测试需要 `policy/` 下模型。
 腰部测试同时加载 `g1_waist_triangles.csv`，独立计算三角平面及命令字段。
 `tests/data/` 是确定性数值回归夹具，不是运行配置或机器标定参数。
+`test_policy_target_limits.py` 检查 SONIC 推理线程避开中断核，以及每个 RL 策略和 HOME 都按 `g1_hardware.yaml` 的
+`position_limit` 截幅关节目标；缺少截幅的策略在实机上会被 whole_body 整条拒收。
 
 ```bash
 python3 -B application/native/humanoid_unitree_g1/tests/test_gamepad_bindings.py
+python3 -B application/native/humanoid_unitree_g1/tests/test_policy_target_limits.py
 python3 -B application/native/humanoid_unitree_g1/tests/test_record_g1_calibration.py
 python3 -B application/native/humanoid_unitree_g1/tests/audio/test_audio_assets.py
 python3 -B -m unittest discover -s application/native/humanoid_unitree_g1/tests/launcher -p 'test_*.py'

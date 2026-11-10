@@ -5,7 +5,8 @@
 schema_version: 2
 whole_body:
   cycle_s: 0.002
-  startup_feedback_timeout_s: 2.0
+  # Allow cold-boot motor initialization; proceed as soon as feedback is ready.
+  startup_feedback_timeout_s: 10.0
   feedback_timeout_s: 0.01  # Beyond 10 ms, hold the last valid motor targets without disabling.
   # Total recovery bound; per-transaction waits remain 5 ms.
   communication_tolerance_s: 0.20
@@ -95,6 +96,7 @@ whole_body:
       feedback_id: 4
       polarity: 1
       zero_offset: 0
+      feedback_limits: {position: [-2.211332162, 1.618967414]}
       command_limits: *g1_native_limits
       driver_options: &rs485_20_26_protocol_3
         idle_poll: true
@@ -115,6 +117,7 @@ whole_body:
       feedback_id: 5
       polarity: 1
       zero_offset: 0
+      feedback_limits: {position: [-1.588947751, 2.274338548]}
       command_limits: *g1_native_limits
       driver_options: *rs485_20_26_protocol_3
 
@@ -168,6 +171,7 @@ whole_body:
       # This is not a change to the serial protocol or a raw encoder zero.
       polarity: -1
       zero_offset: 0
+      feedback_limits: {position: [-2.211332162, 1.618967414]}
       command_limits: *g1_native_limits
       driver_options: *rs485_20_26_protocol_3
     - name: motor_alias_12
@@ -178,6 +182,7 @@ whole_body:
       feedback_id: 5
       polarity: -1
       zero_offset: 0
+      feedback_limits: {position: [-1.588947751, 2.274338548]}
       command_limits: *g1_native_limits
       driver_options: *rs485_20_26_protocol_3
 
@@ -199,6 +204,7 @@ whole_body:
       feedback_id: 0
       polarity: 1
       zero_offset: 0
+      feedback_limits: {position: [-2.085668456, 2.138028334]}
       command_limits: *g1_native_limits
       driver_options: *rs485_20_26_protocol_3
     - name: motor_alias_15
@@ -209,6 +215,7 @@ whole_body:
       feedback_id: 1
       polarity: 1
       zero_offset: 0
+      feedback_limits: {position: [-2.138028334, 2.085668456]}
       command_limits: *g1_native_limits
       driver_options: *rs485_20_26_protocol_3
 
@@ -366,41 +373,41 @@ whole_body:
 
   # Canonical order matches g1.yaml and the MJCF actuator list.
   joints:
-    - {name: left_hip_pitch_joint, mapping: direct, motors: [motor_alias_1], position_limit: [-2.5307, 2.8798], velocity_limit: 32, torque_limit: 88}
-    - {name: left_hip_roll_joint, mapping: direct, motors: [motor_alias_2], position_limit: [-0.5236, 2.9671], velocity_limit: 32, torque_limit: 88}
-    - {name: left_hip_yaw_joint, mapping: direct, motors: [motor_alias_3], position_limit: [-2.7576, 2.7576], velocity_limit: 32, torque_limit: 88}
-    - {name: left_knee_joint, mapping: direct, motors: [motor_alias_4], position_limit: [-0.087267, 2.8798], velocity_limit: 20, torque_limit: 139}
+    - {name: left_hip_pitch_joint, mapping: direct, motors: [motor_alias_1], position_limit: [-2.5307, 2.8798], feedback_position_limit: [-2.792526803, 3.141592654], velocity_limit: 32, torque_limit: 88}
+    - {name: left_hip_roll_joint, mapping: direct, motors: [motor_alias_2], position_limit: [-0.5236, 2.9671], feedback_position_limit: [-0.785398163, 3.228859116], velocity_limit: 32, torque_limit: 88}
+    - {name: left_hip_yaw_joint, mapping: direct, motors: [motor_alias_3], position_limit: [-2.7576, 2.7576], feedback_position_limit: [-3.019419606, 3.019419606], velocity_limit: 32, torque_limit: 88}
+    - {name: left_knee_joint, mapping: direct, motors: [motor_alias_4], position_limit: [-0.087267, 2.8798], feedback_position_limit: [-0.349065850, 3.124139361], velocity_limit: 20, torque_limit: 139}
     # Ankle/waist: projected joint proportional effort, motor-local damping.
     # Mapped motor gains are clipped to KP 2000 and KD 25.
     # MJCF reference ranges are not measured-position shutdown thresholds.
     # Coupled feedback must lie in the finite, nonsingular calibration domain.
     - {name: left_ankle_pitch_joint, mapping: table_2d, motors: [motor_alias_6, motor_alias_5], position_limit: [-0.87267, 0.5236], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: &g1_coupled_impedance {mode: motor_projected, motor_kp_max: 2000, motor_kd_max: 25}}
     - {name: left_ankle_roll_joint, mapping: table_2d, motors: [motor_alias_6, motor_alias_5], position_limit: [-0.2618, 0.2618], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
-    - {name: right_hip_pitch_joint, mapping: direct, motors: [motor_alias_7], position_limit: [-2.5307, 2.8798], velocity_limit: 32, torque_limit: 88}
-    - {name: right_hip_roll_joint, mapping: direct, motors: [motor_alias_8], position_limit: [-2.9671, 0.5236], velocity_limit: 32, torque_limit: 88}
-    - {name: right_hip_yaw_joint, mapping: direct, motors: [motor_alias_9], position_limit: [-2.7576, 2.7576], velocity_limit: 32, torque_limit: 88}
-    - {name: right_knee_joint, mapping: direct, motors: [motor_alias_10], position_limit: [-0.087267, 2.8798], velocity_limit: 20, torque_limit: 139}
+    - {name: right_hip_pitch_joint, mapping: direct, motors: [motor_alias_7], position_limit: [-2.5307, 2.8798], feedback_position_limit: [-2.792526803, 3.141592654], velocity_limit: 32, torque_limit: 88}
+    - {name: right_hip_roll_joint, mapping: direct, motors: [motor_alias_8], position_limit: [-2.9671, 0.5236], feedback_position_limit: [-3.228859116, 0.785398163], velocity_limit: 32, torque_limit: 88}
+    - {name: right_hip_yaw_joint, mapping: direct, motors: [motor_alias_9], position_limit: [-2.7576, 2.7576], feedback_position_limit: [-3.019419606, 3.019419606], velocity_limit: 32, torque_limit: 88}
+    - {name: right_knee_joint, mapping: direct, motors: [motor_alias_10], position_limit: [-0.087267, 2.8798], feedback_position_limit: [-0.349065850, 3.124139361], velocity_limit: 20, torque_limit: 139}
     - {name: right_ankle_pitch_joint, mapping: table_2d, motors: [motor_alias_12, motor_alias_11], position_limit: [-0.87267, 0.5236], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
     - {name: right_ankle_roll_joint, mapping: table_2d, motors: [motor_alias_12, motor_alias_11], position_limit: [-0.2618, 0.2618], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
-    - {name: waist_yaw_joint, mapping: direct, motors: [motor_alias_13], position_limit: [-2.618, 2.618], velocity_limit: 32, torque_limit: 88}
+    - {name: waist_yaw_joint, mapping: direct, motors: [motor_alias_13], position_limit: [-2.618, 2.618], feedback_position_limit: [-2.967059728, 2.967059728], velocity_limit: 32, torque_limit: 88}
     # Target = measured motor angle + mapped joint proportional effort / motor KP.
     # Damping remains in the motor; no host cross-axis velocity residual.
     - {name: waist_roll_joint, mapping: table_2d, motors: [motor_alias_14, motor_alias_15], position_limit: [-0.52, 0.52], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
     - {name: waist_pitch_joint, mapping: table_2d, motors: [motor_alias_14, motor_alias_15], position_limit: [-0.52, 0.52], velocity_limit: 37, torque_limit: 50, feedback_position_check: false, impedance: *g1_coupled_impedance}
-    - {name: left_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_16], position_limit: [-3.0892, 2.6704], velocity_limit: 37, torque_limit: 25}
-    - {name: left_shoulder_roll_joint, mapping: direct, motors: [motor_alias_17], position_limit: [-0.523599, 2.2515], velocity_limit: 37, torque_limit: 25}
-    - {name: left_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_18], position_limit: [-2.618, 2.618], velocity_limit: 37, torque_limit: 25}
-    - {name: left_elbow_joint, mapping: direct, motors: [motor_alias_19], position_limit: [-1.0472, 2.0944], velocity_limit: 37, torque_limit: 25}
-    - {name: left_wrist_roll_joint, mapping: direct, motors: [motor_alias_20], position_limit: [-1.972222054, 1.972222054], velocity_limit: 37, torque_limit: 25}
-    - {name: left_wrist_pitch_joint, mapping: direct, motors: [motor_alias_21], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
-    - {name: left_wrist_yaw_joint, mapping: direct, motors: [motor_alias_22], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
-    - {name: right_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_23], position_limit: [-3.0892, 2.6704], velocity_limit: 37, torque_limit: 25}
-    - {name: right_shoulder_roll_joint, mapping: direct, motors: [motor_alias_24], position_limit: [-2.2515, 0.523599], velocity_limit: 37, torque_limit: 25}
-    - {name: right_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_25], position_limit: [-2.618, 2.618], velocity_limit: 37, torque_limit: 25}
-    - {name: right_elbow_joint, mapping: direct, motors: [motor_alias_26], position_limit: [-1.0472, 2.0944], velocity_limit: 37, torque_limit: 25}
-    - {name: right_wrist_roll_joint, mapping: direct, motors: [motor_alias_27], position_limit: [-1.972222054, 1.972222054], velocity_limit: 37, torque_limit: 25}
-    - {name: right_wrist_pitch_joint, mapping: direct, motors: [motor_alias_28], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
-    - {name: right_wrist_yaw_joint, mapping: direct, motors: [motor_alias_29], position_limit: [-1.614429558, 1.614429558], velocity_limit: 22, torque_limit: 5}
+    - {name: left_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_16], position_limit: [-3.0892, 2.6704], feedback_position_limit: [-3.351032164, 2.932153143], velocity_limit: 37, torque_limit: 25}
+    - {name: left_shoulder_roll_joint, mapping: direct, motors: [motor_alias_17], position_limit: [-0.523599, 2.2515], feedback_position_limit: [-0.523598776, 2.513274123], velocity_limit: 37, torque_limit: 25}
+    - {name: left_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_18], position_limit: [-2.618, 2.618], feedback_position_limit: [-2.879793266, 2.879793266], velocity_limit: 37, torque_limit: 25}
+    - {name: left_elbow_joint, mapping: direct, motors: [motor_alias_19], position_limit: [-1.0472, 2.0944], feedback_position_limit: [-1.308996939, 2.356194490], velocity_limit: 37, torque_limit: 25}
+    - {name: left_wrist_roll_joint, mapping: direct, motors: [motor_alias_20], position_limit: [-1.972222054, 1.972222054], feedback_position_limit: [-2.234021443, 2.234021443], velocity_limit: 37, torque_limit: 25}
+    - {name: left_wrist_pitch_joint, mapping: direct, motors: [motor_alias_21], position_limit: [-1.614429558, 1.614429558], feedback_position_limit: [-1.876228946, 1.876228946], velocity_limit: 22, torque_limit: 5}
+    - {name: left_wrist_yaw_joint, mapping: direct, motors: [motor_alias_22], position_limit: [-1.614429558, 1.614429558], feedback_position_limit: [-1.876228946, 1.876228946], velocity_limit: 22, torque_limit: 5}
+    - {name: right_shoulder_pitch_joint, mapping: direct, motors: [motor_alias_23], position_limit: [-3.0892, 2.6704], feedback_position_limit: [-3.351032164, 2.932153143], velocity_limit: 37, torque_limit: 25}
+    - {name: right_shoulder_roll_joint, mapping: direct, motors: [motor_alias_24], position_limit: [-2.2515, 0.523599], feedback_position_limit: [-2.513274123, 0.523598776], velocity_limit: 37, torque_limit: 25}
+    - {name: right_shoulder_yaw_joint, mapping: direct, motors: [motor_alias_25], position_limit: [-2.618, 2.618], feedback_position_limit: [-2.879793266, 2.879793266], velocity_limit: 37, torque_limit: 25}
+    - {name: right_elbow_joint, mapping: direct, motors: [motor_alias_26], position_limit: [-1.0472, 2.0944], feedback_position_limit: [-1.308996939, 2.356194490], velocity_limit: 37, torque_limit: 25}
+    - {name: right_wrist_roll_joint, mapping: direct, motors: [motor_alias_27], position_limit: [-1.972222054, 1.972222054], feedback_position_limit: [-2.234021443, 2.234021443], velocity_limit: 37, torque_limit: 25}
+    - {name: right_wrist_pitch_joint, mapping: direct, motors: [motor_alias_28], position_limit: [-1.614429558, 1.614429558], feedback_position_limit: [-1.876228946, 1.876228946], velocity_limit: 22, torque_limit: 5}
+    - {name: right_wrist_yaw_joint, mapping: direct, motors: [motor_alias_29], position_limit: [-1.614429558, 1.614429558], feedback_position_limit: [-1.876228946, 1.876228946], velocity_limit: 22, torque_limit: 5}
 
   couplings:
     - type: table_2d
