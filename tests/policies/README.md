@@ -14,6 +14,12 @@ output/build/g1_policy_tests/test_policy_catalog application/native/humanoid_uni
 逐个加载配置中的 ONNX，按各自的观测、动作映射和参考协议推理，检查维度和有限数值。
 该测试不包含物理仿真。
 
+参考动作裁剪的边界检查不需要模型资源：
+
+```bash
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_supermimic_assets.py
+```
+
 ## 三进程仿真
 
 ```bash
@@ -32,11 +38,17 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial dance_mode --policies idle wait:20 idle action:dance finished action:kungfu finished
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode idle action:dance1 finished action:packed finished action:jumps1 finished
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode action:dance1 cancel finished sonic idle action:standing finished
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies supermimic_mode idle wait:60 idle action:sm_walk finished action:sm_clap finished action:sm_point finished action:sm_dance finished stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_dance wait:4 cancel action:sm_walk wait:5 cancel action:sm_point wait:3 stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_langzi_tiqiu finished wait:5 action:sm_langzi_tiqiu wait:2 cancel wait:6 stand
 ```
 
 `action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待
 动作结束并检查仍在原模式；`cancel` 取消动作；`wait:<秒数>` 保持运行。
 Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒，完整播放回归需要等待相应时长。
+
+SuperMimic 应检查待命、完整播放、中途取消和切换模式后的站稳情况。
+实机测试另需核对增益、动作中断及站稳表现；仿真中若取消后持续迈步，应先处理再落地测试。
 
 行走、停止和舞蹈待命交接：
 
@@ -68,5 +80,5 @@ run_g1.sh --sim
 ```
 
 先按 DAMP→HOME→ZERO→RL 进入默认常规运控，再选择同组模式。
-舞蹈运控进入后站立待命，TUI 主页面按 A 打开动作列表，再选择开始；网页从动作列表触发。
+舞蹈运控、SuperMimic 运控进入后站立待命，TUI 主页面按 A 打开动作列表，再选择开始；网页从动作列表触发。
 实机的机械范围、接线、IMU 安装与落地稳定性另行验收。

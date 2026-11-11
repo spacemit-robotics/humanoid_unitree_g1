@@ -29,11 +29,13 @@ RT+动作键使用过后，松开动作键但仍按住 RT，不会补发取消�
 | LT + A/B | 长按 1 秒 | 分别选择常规运控（LocoMode，默认）／常规运控（MJLab） |
 | LT + X | 长按 1 秒 | 选择舞蹈运控，进入后站立等待动作 |
 | LT + Y/↑/↓ | 长按 1 秒 | 分别选择 SONIC 运控／SONIC 规划行走／常规运控（RL Gym） |
+| LT + ← | 长按 1 秒 | 选择 SuperMimic 运控，进入后站立等待动作 |
 | RT + A/B | 长按 1 秒 | 舞蹈运控：分别触发舞蹈／功夫 |
 | RT + X/Y/↑ | 长按 1 秒 | 舞蹈运控：分别触发 Dance 1／Packed／Jumps 1 |
 | RT + A/B/X | 长按 1 秒 | SONIC 运控：分别触发平稳站立／行走转身／玛卡莲娜舞 |
 | RT + ↑ | 长按 1 秒 | SONIC 运控：慢走，起步后向前四步并停稳 |
 | Y | 点按 | 常规运控（MJLab／RL Gym）、SONIC 规划行走：慢速／快速切换 |
+| RT + A/B/X/Y | 长按 1 秒 | SuperMimic 运控：分别触发走路／鼓掌／指向／闪身步 |
 | RT | 长按 1 秒 | 取消当前动作，交接回本模式待命，不退出 RL |
 
 M、G 圆键、右摇杆上下未绑定机器人功能；保留手柄自身设置、开关机等功能。
@@ -47,15 +49,17 @@ MJLab／RL Gym 慢档前进为 0.6 m/s，快档分别为 1.0／0.8 m/s；
 SONIC 规划行走保持慢档前进 0.6、快档 0.8 m/s；倒退、横移 0.3 m/s，转向 0.5 rad/s。
 速度配置依据与完整参数表见[手机遥控](phone_teleop.md)。
 各策略的 `command.limits` 同时约束手柄、网页与 TUI。
-使用配置的加减速度平滑；舞蹈和 SONIC 参考动作播放不接受移动速度。
+使用配置的加减速度平滑；舞蹈、SONIC 和 SuperMimic 参考动作播放不接受移动速度。
 SONIC 规划行走接收摇杆速度，经规划器生成连续参考动作。
 LocoMode 沿用 `stand` 策略键和模型路径，支持站走，不再限制为零速度。
 
-舞蹈运控选择后不会播放动作；动作结束仍留在原模式，保持站立等待。
+舞蹈运控和 SuperMimic 运控选择后不会播放动作；动作结束仍留在原模式，保持站立等待。
 动作按键仅在对应模式有效，长按保持不会循环重播。
 
 同组策略可在 RL 中切换，当前策略持续控制并等待目标模型准备和动作交接点。
-切换中的请求不叠加；定时动作到末帧交接，SONIC 先收回。状态切换仍遵守 DAMP→HOME→ZERO→RL。
+切换中的请求不叠加；定时动作到末帧交接，SONIC、SuperMimic 先收回。
+动作取消的返回时长见 [运控与动作](../resources/motion_modes/README.md)，取消不是掉电急停。
+状态切换仍遵守 DAMP→HOME→ZERO→RL。
 HOME 完成再 ZERO，ZERO 准备完成再 RL；过早触发会拒绝，松开后重新长按，不自动补发。
 
 手柄不自动抢网页控制权；先在网页释放，再点按截图键接管。
@@ -78,7 +82,7 @@ HOME 完成再 ZERO，ZERO 准备完成再 RL；过早触发会拒绝，松开�
 output/staging/bin/hmi_gamepad application/native/humanoid_unitree_g1/config/g1.yaml --dry-run --policy stand
 ```
 
-dry-run 不连接 HMI、不发控制命令或震动。用 `--policy dance_mode` 检查舞蹈绑定，
+dry-run 不连接 HMI、不发控制命令或震动。用 `--policy dance_mode`、`--policy supermimic_mode` 检查动作绑定，
 该参数不切换实际机器人模式。仅有设备键码不代表外壳按键映射正确，应逐键确认。
 
 震动使用 USB DS4 output report，在设备身份和报告长度核对后发送。

@@ -21,6 +21,7 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 站立待命；按动作列表播放行走转身、玛卡莲娜舞 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
+| SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
 
 ## 快速开始
 
@@ -113,7 +114,7 @@ run_g1.sh --real --tui
 
 启动保持 POWER_OFF，不自动使能。接管控制权后依次经过 DAMP、HOME、ZERO、RL，等待当前过渡完成再切下一状态。HOME 为收腿准备姿态，ZERO 使用所选策略的准备姿态。首次硬件校准、修改接线或更换模型后的验证应使用可靠支撑。
 
-在界面的模式列表中选择运控；舞蹈运控进入后保持站立，需从动作列表另行触发舞蹈。兼容模式支持在 RL 中交接，动作结束或取消后回到所属模式待命。交接条件、动作资源和参数见 [运控与动作说明](resources/motion_modes/README.md)。
+在界面中选择运控模式和动作，操作方式见 [运控与动作说明](resources/motion_modes/README.md)。
 
 ## 详细使用
 

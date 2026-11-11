@@ -17,3 +17,22 @@ This product contains portions of the following third-party software:
 2. RoboMimic_Deploy (https://github.com/ccrpRepo/RoboMimic_Deploy)
    Copyright (c) ccrpRepo
    No explicit license provided; used with attribution.
+
+3. SuperMimic-Repro-Sim2Real (https://github.com/NJU-R-L-Group-Embodied-Lab/SuperMimic-Repro-Sim2Real)
+   Copyright (c) 2026 Yuxi Liu and Hongyu Ding.
+   Code and custom motions: MIT License; checkpoints: upstream release terms.
+
+4. unitree_rl_mjlab (https://github.com/unitreerobotics/unitree_rl_mjlab)
+   Licensed under the Apache License 2.0.
+
+5. GR00T-WholeBodyControl / GEAR-SONIC (https://github.com/NVlabs/GR00T-WholeBodyControl)
+   Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+   Code: Apache-2.0. Models: Licensed by NVIDIA Corporation under the NVIDIA Open Model License.
+
+6. ProtoMotions (https://github.com/NVlabs/ProtoMotions)
+   Copyright (c) 2025-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+   Source code licensed under the Apache License 2.0.
+
+7. BONES-SEED (https://huggingface.co/datasets/bones-studio/seed)
+   Motion Data by Bones Studio (https://bones.studio/).
+   BONES Motion Capture Dataset License Agreement (https://bones.studio/info/seed-license).
