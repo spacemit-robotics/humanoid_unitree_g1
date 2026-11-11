@@ -113,13 +113,14 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertNotIn("zero_target_pos", policy)
         catalog = self.config["supermimic_actions"]
         self.assertEqual(catalog["default_action"], "sm_standby")
-        self.assertEqual(catalog["action_names"], ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance"])
+        self.assertEqual(catalog["action_names"],
+                         ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance", "sm_langzi_tiqiu"])
         self.assertEqual(list(catalog["actions"]), catalog["action_names"])
         for name, action in catalog["actions"].items():
             self.assertEqual(action["file"], f"policy/supermimic/references/{name.removeprefix('sm_')}.npz")
         bound = {b["value"] for b in self.bindings
                  if b["operation"] == "action" and b.get("policy") == "supermimic_mode"}
-        self.assertEqual(bound, set(catalog["action_names"]) - {catalog["default_action"]})
+        self.assertEqual(bound, {"sm_walk", "sm_clap", "sm_point", "sm_dance"})
 
     def test_unique_yaml_keys(self):
         package = Path(__file__).resolve().parents[1]
