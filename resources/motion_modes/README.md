@@ -1,6 +1,6 @@
 # 运控模式与动作
 
-`config/g1.yaml` 的 `policy_names` 定义六个可选模式，默认常规运控（LocoMode）。
+`config/g1.yaml` 的 `policy_names` 定义七个可选模式，默认常规运控（LocoMode）。
 底层模型与动作资源放在 `policy/`，不随源码提交；
 `download_models_g1.sh` 获取模型库中已发布的资源。
 
@@ -12,10 +12,13 @@
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞 |
 | SONIC 运控（规划行走） | `sonic_planner` | 站立，收到速度后由规划器生成参考 | 无 |
+| SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步 |
 
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
 才后台加载对应模型并交接；动作结束或取消后回到该模式的 stand，等待下一条请求。
-选模式、进入 RL、重复收到同一条请求，都不会自动开始或重复播放舞蹈。
+SONIC 运控和 SuperMimic 运控由同一个跟踪策略完成待命和动作：待命时跟踪目录默认动作的静态参考，
+触发动作只替换参考，不切换模型、不重置观测历史。
+选模式、进入 RL、重复收到同一条请求，都不会自动开始或重复播放动作。
 `stand` 是 LocoMode 站走模型的兼容策略键。独立选择时接收速度；
 用作舞蹈待命时，由所属模式的零速度限幅保持站立。
 ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资源配置。
@@ -31,9 +34,16 @@ ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资�
 | 慢走 | `slow_walk` | `sonic` | `policy/sonic/slow_walk/`，5.46 秒，起步、向前四步、停稳 |
 | 行走转身 | `walk` | `sonic` | `policy/sonic/walking_quip_360_R_002__A428/`，9.10 秒 |
 | 玛卡莲娜舞 | `macarena` | `sonic` | `policy/sonic/macarena_001__A545/`，27.50 秒 |
+| 待命 | `sm_standby` | `supermimic_mode` | `policy/supermimic/references/standby.npz`，两帧相同的待命姿态参考 |
+| 走路 | `sm_walk` | `supermimic_mode` | `policy/supermimic/references/walk.npz`，10.3 秒 |
+| 鼓掌 | `sm_clap` | `supermimic_mode` | `policy/supermimic/references/clap.npz`，17.0 秒 |
+| 指向 | `sm_point` | `supermimic_mode` | `policy/supermimic/references/point.npz`，10.7 秒 |
+| 闪身步 | `sm_dance` | `supermimic_mode` | `policy/supermimic/references/dance.npz`，11.2 秒 |
 
 前五项是不同模型，common 按 `policy_actions.actions.<ID>.policy` 调度；
-SONIC 使用同一模型的 `sonic_actions` 参考目录。两者在客户端都采用“选模式，再触发动作”。
+SONIC、SuperMimic 分别使用同一模型的 `sonic_actions`、`supermimic_actions` 参考目录。
+它们在客户端都采用“选模式，再触发动作”。SuperMimic 动作参考首尾为待命姿态；
+资源由 `scripts/prepare_supermimic_assets.py` 本地生成，见 [SuperMimic 运控](../../docs/supermimic.md)。
 新增动作只需配置对应目录和资源，不在 common 中写机型名或固定动作数量。
 SONIC 的行走转身和舞蹈使用 GEAR-SONIC 的 G1 示例参考，每个目录提供
 `joint_pos.csv`、`joint_vel.csv`、`body_quat.csv`，50 Hz，关节顺序保持模型顺序。
@@ -68,7 +78,7 @@ SONIC 使用独立的 FP32 `model_encoder.onnx` 和 `model_decoder.onnx`，
 RL 内选择同组模式时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
 普通站走策略在零速有效推理帧交接；定时动作播放中选择其他模式会等待末帧。
 需要提前结束时先取消动作，准备好待命策略后从当前有效目标交接，位置与增益同步过渡。
-SONIC 取消由自身参考过渡处理。模型加载失败保持当前控制并显示动作失败。
+SONIC、SuperMimic 的取消由自身参考过渡处理。模型加载失败保持当前控制并显示动作失败。
 机型交接等待上限为 300 秒，HOME/ZERO 中不切换模式。
 
 各执行策略的观测、历史、动作尺度与增益独立保留。

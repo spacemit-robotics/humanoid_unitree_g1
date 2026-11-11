@@ -32,11 +32,16 @@ class GamepadBindingsTest(unittest.TestCase):
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
             ("LT+UP", ""): ("policy", "sonic_planner", 1000, "press"),
             ("LT+DOWN", ""): ("policy", "walk_rlgym", 1000, "press"),
+            ("LT+LEFT", ""): ("policy", "supermimic_mode", 1000, "press"),
             ("RT+A", "dance_mode"): ("action", "dance", 1000, "press"),
             ("RT+B", "dance_mode"): ("action", "kungfu", 1000, "press"),
             ("RT+X", "dance_mode"): ("action", "dance1", 1000, "press"),
             ("RT+Y", "dance_mode"): ("action", "packed", 1000, "press"),
             ("RT+UP", "dance_mode"): ("action", "jumps1", 1000, "press"),
+            ("RT+A", "supermimic_mode"): ("action", "sm_walk", 1000, "press"),
+            ("RT+B", "supermimic_mode"): ("action", "sm_clap", 1000, "press"),
+            ("RT+X", "supermimic_mode"): ("action", "sm_point", 1000, "press"),
+            ("RT+Y", "supermimic_mode"): ("action", "sm_dance", 1000, "press"),
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
             ("Y", "sonic_planner"): ("preset", "toggle", 0, "tap"),
@@ -58,7 +63,7 @@ class GamepadBindingsTest(unittest.TestCase):
         catalog = self.config["rl_policy"]["onnx_infer"]
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
         self.assertEqual(mapped, set(catalog["policy_names"]))
-        self.assertEqual(len(mapped), 6)
+        self.assertEqual(len(mapped), 7)
         self.assertNotIn("protomotions", catalog["policy_names"])
         self.assertEqual(catalog["default_policy"], "stand")
         for name, policy in catalog["policies"].items():
@@ -96,6 +101,25 @@ class GamepadBindingsTest(unittest.TestCase):
             bound = {b["value"] for b in self.bindings
                      if b["operation"] == "action" and b.get("policy") == mode}
             self.assertEqual(bound, set(actions["action_names"]))
+
+    def test_supermimic_catalog(self):
+        policy = self.config["rl_policy"]["onnx_infer"]["policies"]["supermimic_mode"]
+        self.assertNotIn("policy_actions", policy)
+        self.assertEqual(policy["policy_adapter"], {"type": "supermimic", "catalog": "supermimic_actions",
+                                                    "anchor_body_index": 0})
+        home = self.config["behavior_manager"]["home"]
+        self.assertEqual(policy["target_position_lower"], home["target_position_lower"])
+        self.assertEqual(policy["target_position_upper"], home["target_position_upper"])
+        self.assertNotIn("zero_target_pos", policy)
+        catalog = self.config["supermimic_actions"]
+        self.assertEqual(catalog["default_action"], "sm_standby")
+        self.assertEqual(catalog["action_names"], ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance"])
+        self.assertEqual(list(catalog["actions"]), catalog["action_names"])
+        for name, action in catalog["actions"].items():
+            self.assertEqual(action["file"], f"policy/supermimic/references/{name.removeprefix('sm_')}.npz")
+        bound = {b["value"] for b in self.bindings
+                 if b["operation"] == "action" and b.get("policy") == "supermimic_mode"}
+        self.assertEqual(bound, set(catalog["action_names"]) - {catalog["default_action"]})
 
     def test_unique_yaml_keys(self):
         package = Path(__file__).resolve().parents[1]
