@@ -43,6 +43,13 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_langzi_tiqiu finished wait:5 action:sm_langzi_tiqiu wait:2 cancel wait:6 stand
 ```
 
+交互动作的完整播放与中途取消：
+
+```bash
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial sonic --policies idle action:handshake finished action:wave_chest finished action:wave_high finished action:blow_kiss finished action:clap_short finished action:wave_high wait:3 cancel wait:5 stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_handshake finished action:sm_wave_chest finished action:sm_wave_high finished action:sm_blow_kiss finished action:sm_clap_short finished action:sm_wave_high wait:3 cancel wait:5 stand
+```
+
 `action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待
 动作结束并检查仍在原模式；`cancel` 取消动作；`wait:<秒数>` 保持运行。
 Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒，完整播放回归需要等待相应时长。

@@ -10,9 +10,9 @@
 | 常规运控（MJLab） | `walk_mjlab` | 零速站立，收到速度后行走 | 无 |
 | 常规运控（RL Gym） | `walk_rlgym` | 零速仍踏步，收到速度后行走 | 无 |
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞 |
+| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞、五个交互动作 |
 | SONIC 运控（规划行走） | `sonic_planner` | 站立，收到速度后由规划器生成参考 | 无 |
-| SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步、浪子踢球 |
+| SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步、浪子踢球、五个交互动作 |
 
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
 才后台加载对应模型并交接；动作结束或取消后回到该模式的 stand，等待下一条请求。
@@ -40,6 +40,20 @@ ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资�
 | 指向 | `sm_point` | `supermimic_mode` | `policy/supermimic/references/point.npz`，10.7 秒 |
 | 闪身步 | `sm_dance` | `supermimic_mode` | `policy/supermimic/references/dance.npz`，11.2 秒 |
 | 浪子踢球 | `sm_langzi_tiqiu` | `supermimic_mode` | `policy/supermimic/references/langzi_tiqiu.npz`，约 9.1 秒 |
+
+两个跟踪模式均支持以下交互参考，时长包含首尾各 0.5 秒待命和 1.5 秒过渡：
+
+| 动作 | SONIC 动作 ID | SuperMimic 动作 ID | 时长 |
+| --- | --- | --- | --- |
+| 握手 | `handshake` | `sm_handshake` | 7.0 秒，含伸手停留 2 秒 |
+| 高举挥手 | `wave_high` | `sm_wave_high` | 9.7 秒 |
+| 胸前挥手 | `wave_chest` | `sm_wave_chest` | 6.6 秒 |
+| 飞吻 | `blow_kiss` | `sm_blow_kiss` | 7.0 秒 |
+| 鼓掌（短） | `clap_short` | `sm_clap_short` | 6.2 秒 |
+
+TUI 和网页从原有动作列表选择；现有手柄绑定不变。这些参考保持腿部站姿、加入上身动作，
+全身指令仍由跟踪模型输出，不使用上身电机直接接管。播放完成后回到待命姿态，也可按取消提前返回。
+原来的 `sm_clap` 为 17 秒鼓掌片段，仍保留。
 
 前五项是不同模型，common 按 `policy_actions.actions.<ID>.policy` 调度；
 SONIC、SuperMimic 分别使用同一模型的 `sonic_actions`、`supermimic_actions` 参考目录。
@@ -111,7 +125,7 @@ SuperMimic 取消及模式交接时，原动作继续推进并逐渐减弱，过
 
 ## 资源准备
 
-SuperMimic 的模型与参考动作由 `scripts/prepare_supermimic_assets.py` 生成。
+SuperMimic 的模型与基础参考动作由 `scripts/prepare_supermimic_assets.py` 生成。
 准备解压后的 `e13i_0291000`（含 `policy_ir9.onnx`、`deploy_config.json`）、
 ProtoMotions 的 `g1_bones_seed_mini.pt` 和上游 `motions/custom_dance/`，在机型目录执行：
 
@@ -136,5 +150,12 @@ NPZ 使用 50 Hz：`joint_pos`、`joint_vel` 为 `[T,29]`；`body_pos_w`、
 走路、鼓掌、指向来自 BONES-SEED，闪身步和浪子踢球分别来自上游 `shanshenbu.csv`、
 `langzi_tiqiu.csv`，具体片段及处理参数记录在清单中。
 模型权重及动作数据遵循各自来源的许可。
+
+交互参考使用 `scripts/prepare_interaction_references.py --motion <ID>=<轨迹.yaml>`，
+每个动作提供一个 `--motion`；ID 使用上表 SONIC 一列。输入包含 `time`（秒）、
+`q`（N×17，rad，左臂 7＋右臂 7＋腰 yaw/roll/pitch），可选 `hold: true` 在末帧停留 2 秒。
+先准备好两套模型的默认待命参考，再生成 `policy/sonic/<ID>/` 的 CSV 与
+`policy/supermimic/references/<ID>.npz`。脚本分别读取两套待命姿态，按模型要求转换关节顺序，
+重算速度并校验参考角度范围；生成清单 `INTERACTIONS.json` 记录输入校验和与处理参数。
 
 验证命令见 [策略测试](../../tests/policies/README.md)。

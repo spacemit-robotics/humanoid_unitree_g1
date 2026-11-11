@@ -356,8 +356,8 @@ def main():
     catalog = config[policy["policy_adapter"]["catalog"]]
     files = {name: Path(action["file"]).name for name, action in catalog["actions"].items()}
     standby_file = files[catalog["default_action"]]
-    if not args.clip and set(files.values()) != {standby_file} | {f"{name}.npz" for name in clips}:
-        raise SystemExit("config/g1.yaml catalog files differ from the generated references")
+    if not args.clip and not ({standby_file} | {f"{name}.npz" for name in clips}).issubset(files.values()):
+        raise SystemExit("config/g1.yaml catalog is missing a generated reference")
     stance = standby_stance(policy["rl_default_pos"])
     limits = (np.asarray(policy["target_position_lower"]), np.asarray(policy["target_position_upper"]),
               np.asarray(constants["velocity_limit"]), constants["joint_names"])
