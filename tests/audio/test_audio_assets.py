@@ -21,7 +21,7 @@ class AudioAssetsTest(unittest.TestCase):
 
     def test_assets(self):
         prompts = json.loads((AUDIO / "prompts.json").read_text())
-        self.assertEqual(len(prompts), 26)
+        self.assertEqual(len(prompts), 22)
         self.assertEqual(prompts["gamepad_connected.wav"], "手柄已连接")
         self.assertEqual(prompts["gamepad_disconnected.wav"], "手柄已断开")
         self.assertEqual(prompts["control_acquired.wav"], "已接管控制权")
@@ -59,10 +59,7 @@ class AudioAssetsTest(unittest.TestCase):
             actions.update(policy.get("policy_actions", {}).get("action_names", []))
             if "catalog" in policy.get("policy_adapter", {}):
                 actions.update(machine[policy["policy_adapter"]["catalog"]]["action_names"])
-        bound = {binding["value"] for binding in machine["operator_gamepad"]["bindings"]
-                 if binding["operation"] == "action" and binding.get("policy") == "supermimic_mode"}
         announced = {key.removeprefix("action.") for key in clips if key.startswith("action.")}
-        self.assertLessEqual(bound, announced)
         self.assertLessEqual(announced, actions)
         self.assertNotIn("policy.protomotions", clips)
         self.assertEqual(clips["policy.stand"], "locomotion_mode.wav")

@@ -40,11 +40,15 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies dance_mode action:dance1 cancel finished sonic idle action:standing finished
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies supermimic_mode idle wait:60 idle action:sm_walk finished action:sm_clap finished action:sm_point finished action:sm_dance finished stand
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_dance wait:4 cancel action:sm_walk wait:5 cancel action:sm_point wait:3 stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_langzi_tiqiu finished wait:5 action:sm_langzi_tiqiu wait:2 cancel wait:6 stand
 ```
 
 `action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待
 动作结束并检查仍在原模式；`cancel` 取消动作；`wait:<秒数>` 保持运行。
 Dance 1/Packed 各约 131 秒，Jumps 1 约 244 秒，完整播放回归需要等待相应时长。
+
+SuperMimic 应检查待命、完整播放、中途取消和切换模式后的站稳情况。
+实机测试另需核对增益、动作中断及站稳表现；仿真中若取消后持续迈步，应先处理再落地测试。
 
 行走、停止和舞蹈待命交接：
 

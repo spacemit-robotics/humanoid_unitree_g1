@@ -12,7 +12,7 @@
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞 |
 | SONIC 运控（规划行走） | `sonic_planner` | 站立，收到速度后由规划器生成参考 | 无 |
-| SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步 |
+| SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步、浪子踢球 |
 
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
 才后台加载对应模型并交接；动作结束或取消后回到该模式的 stand，等待下一条请求。
@@ -39,11 +39,14 @@ ProtoMotions 暂不提供模式入口和动作绑定，保留执行策略与资�
 | 鼓掌 | `sm_clap` | `supermimic_mode` | `policy/supermimic/references/clap.npz`，17.0 秒 |
 | 指向 | `sm_point` | `supermimic_mode` | `policy/supermimic/references/point.npz`，10.7 秒 |
 | 闪身步 | `sm_dance` | `supermimic_mode` | `policy/supermimic/references/dance.npz`，11.2 秒 |
+| 浪子踢球 | `sm_langzi_tiqiu` | `supermimic_mode` | `policy/supermimic/references/langzi_tiqiu.npz`，约 9.1 秒 |
 
 前五项是不同模型，common 按 `policy_actions.actions.<ID>.policy` 调度；
 SONIC、SuperMimic 分别使用同一模型的 `sonic_actions`、`supermimic_actions` 参考目录。
-它们在客户端都采用“选模式，再触发动作”。SuperMimic 动作参考首尾为待命姿态；
-资源由 `scripts/prepare_supermimic_assets.py` 本地生成，见 [SuperMimic 运控](../../docs/supermimic.md)。
+它们在客户端都采用“选模式，再触发动作”。SuperMimic 动作参考首尾为待命姿态，
+每端包含 0.5 秒待命和 1.5 秒过渡，完整播放后保持末帧。
+待命参考使用策略默认关节姿态、直立骨盆和由 MJCF 脚底接触点确定的高度。
+走路片段向前约 2.7 m；闪身步包含小幅跳跃，操作前应留出活动空间。
 新增动作只需配置对应目录和资源，不在 common 中写机型名或固定动作数量。
 SONIC 的行走转身和舞蹈使用 GEAR-SONIC 的 G1 示例参考，每个目录提供
 `joint_pos.csv`、`joint_vel.csv`、`body_quat.csv`，50 Hz，关节顺序保持模型顺序。
@@ -75,6 +78,19 @@ SONIC 使用独立的 FP32 `model_encoder.onnx` 和 `model_decoder.onnx`，
 其他主机可按可用核心调整这组配置；`events.log` 的 `RL runtime ready`、
 `SONIC encoder ready`、`SONIC planner model ready` 记录 provider 和 worker 实际落核与调度。
 
+SuperMimic 使用 SuperMimic-Repro-Sim2Real 的 `e13i_0291000` 模型，
+以 50 Hz 推理（`infer_decimation: 1`），复用 `g1_cpu_runtime`。
+关节顺序为 `robot_base.joint_names` 的 29 轴顺序，增益、默认姿态及动作尺度来自配套的 `deploy_config.json`。
+
+| 模型输入／输出 | 内容 |
+| --- | --- |
+| `obs_hist` | 10 帧 × 93：q−q0、dq、gyro、重力投影、上一帧原始 action；按项排列，旧帧在前 |
+| `goal` | 10 帧 × 68：参考 q−q0、dq、骨盆重力投影、骨盆系角速度、航向系线速度、骨盆高度 |
+| `actions` | 29 维；q_target = q0 + action_scale · action |
+
+播放时参考窗口为未来第 1–10 拍，即提前 20–200 ms；待命和播放结束后保持静态参考。
+`target_position_lower/upper` 对模型输出的关节目标截幅后继续控制。
+
 RL 内选择同组模式时保持控制：速度归零，后台加载目标，当前策略到达交接点后切换。
 普通站走策略在零速有效推理帧交接；定时动作播放中选择其他模式会等待末帧。
 需要提前结束时先取消动作，准备好待命策略后从当前有效目标交接，位置与增益同步过渡。
@@ -85,7 +101,40 @@ SONIC、SuperMimic 的取消由自身参考过渡处理。模型加载失败保�
 内置定时舞蹈不叠加输出过渡延迟；回待命使用 stand 的 0.5 秒目标与增益过渡。
 进入模式的 ZERO 姿态也来自该模式的待命策略。
 
+SuperMimic 取消及模式交接时，原动作继续推进并逐渐减弱，过渡回待命参考。
+`supermimic_actions.transition_duration` 为 1 秒；单动作的 `cancel_transition_duration` 可覆盖返回时长，
+闪身步配置为 2 秒，其他动作保持 1 秒。过渡期间显示退出阶段，结束后允许下一个动作或模式接管。
+取消动作不会立即失能电机。
+
 台阶场景启动命令为 `run_g1.sh --sim --stairs`。它仅增加仿真地形，不改变模型能力；
 当前行走策略不是专门的越障模型。
+
+## 资源准备
+
+SuperMimic 的模型与参考动作由 `scripts/prepare_supermimic_assets.py` 生成。
+准备解压后的 `e13i_0291000`（含 `policy_ir9.onnx`、`deploy_config.json`）、
+ProtoMotions 的 `g1_bones_seed_mini.pt` 和上游 `motions/custom_dance/`，在机型目录执行：
+
+```bash
+python3 scripts/prepare_supermimic_assets.py \
+    --bundle "<e13i_0291000目录>" \
+    --bones-library "<g1_bones_seed_mini.pt路径>" \
+    --nju-motions "<上游目录>/motions/custom_dance"
+```
+
+依赖 numpy、PyYAML、onnx、onnxruntime、torch 和 mujoco。
+脚本将模型的 `obs`、`goal`、`action` 改名为 `obs_hist`、`goal`、`actions`，不改变网络计算，
+并检查 YAML 与模型参数一致、改名后推理结果相同。
+输出位于 `policy/supermimic/`，包括 `policy.onnx`、`deploy_config.json`、`references/*.npz` 和 `SOURCES.json`。
+清单记录来源标识、文件名、校验和及动作范围，不记录本机路径。
+
+`--clip ID=bones:<片段>` 或 `--clip ID=nju:<CSV名>` 可指定其他片段；
+片段后加 `@<起>-<止>` 可去掉该区间，单位为秒，起止应处于同一步态相位且均位于片段内。
+`--hold`、`--blend` 分别调整首尾待命与过渡时长。
+NPZ 使用 50 Hz：`joint_pos`、`joint_vel` 为 `[T,29]`；`body_pos_w`、
+`body_quat_w`（wxyz）、`body_lin_vel_w`、`body_ang_vel_w` 仅含骨盆，`anchor_body_index: 0`。
+走路、鼓掌、指向来自 BONES-SEED，闪身步和浪子踢球分别来自上游 `shanshenbu.csv`、
+`langzi_tiqiu.csv`，具体片段及处理参数记录在清单中。
+模型权重及动作数据遵循各自来源的许可。
 
 验证命令见 [策略测试](../../tests/policies/README.md)。

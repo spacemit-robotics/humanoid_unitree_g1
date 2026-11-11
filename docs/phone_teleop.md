@@ -29,7 +29,9 @@ Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并�
 动作结束或取消后仍停留在舞蹈运控、等待下次触发。SONIC 运控从动作列表触发
 平稳站立、慢走、行走转身、玛卡莲娜舞。慢走包含起步、向前四步与停稳，进入模式时保持站立，
 SONIC 规划行走通过方向键或双摇杆给规划器发送速度。ProtoMotions 暂不显示。
-SuperMimic 运控进入后保持待命，从动作列表触发走路、鼓掌、指向或闪身步。
+SuperMimic 运控进入后保持待命，从动作列表触发走路、鼓掌、指向、闪身步或浪子踢球。
+点击取消后收回待命，界面显示退出阶段，完成后可触发下一动作。
+返回时长见 [运控与动作](../resources/motion_modes/README.md)；取消不会立即失能电机。
 
 各模式速度位于 [g1.yaml](../config/g1.yaml) 的策略 `command.limits` 与
 `command.teleop`；未配置策略预设时使用 `operator_service.teleop`。

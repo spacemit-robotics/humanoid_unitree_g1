@@ -21,7 +21,7 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 站立待命；按动作列表播放行走转身、玛卡莲娜舞 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
-| SuperMimic 运控 | `supermimic_mode` | 通用跟踪策略自身站立待命；从动作列表触发走路、鼓掌、指向、闪身步 |
+| SuperMimic 运控 | `supermimic_mode` | 通用跟踪策略自身站立待命；从动作列表触发走路、鼓掌、指向、闪身步、浪子踢球 |
 
 ## 快速开始
 
@@ -69,8 +69,6 @@ download_models_g1.sh
 ```
 
 `policy/` 不纳入 Git。脚本只从 SpacemiT 模型库下载已发布资源，并保留目录层级，不单独访问上游模型网站。所选模式的模型与参考动作路径以 `config/g1.yaml` 为准，资源清单见 [运控与动作说明](resources/motion_modes/README.md)。
-
-SuperMimic 运控的模型与参考动作需用 `scripts/prepare_supermimic_assets.py` 准备，资源格式与操作说明见 [SuperMimic 运控](docs/supermimic.md)。
 
 模型缺失时先补齐对应资源，不要替换成其他模型而沿用当前观测、增益和动作尺度。实机还需配套的腰踝标定数据，准备方式见 [硬件接入](docs/hardware.md)。
 

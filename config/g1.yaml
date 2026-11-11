@@ -173,10 +173,6 @@ audio_prompts:
     action.packed: packed.wav
     action.jumps1: jumps1.wav
     action.standing: standing.wav
-    action.sm_walk: walk.wav
-    action.sm_clap: clap.wav
-    action.sm_point: point.wav
-    action.sm_dance: shanshenbu.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
     fault: fault.wav
@@ -320,13 +316,14 @@ supermimic_actions:
   default_action: sm_standby
   transition_duration: 1.0
   motion_fps: 50
-  action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance]
+  action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance, sm_langzi_tiqiu]
   actions:
     sm_standby: {display_name: 待命, file: policy/supermimic/references/standby.npz}
     sm_walk: {display_name: 走路, file: policy/supermimic/references/walk.npz}
     sm_clap: {display_name: 鼓掌, file: policy/supermimic/references/clap.npz}
     sm_point: {display_name: 指向, file: policy/supermimic/references/point.npz}
     sm_dance: {display_name: 闪身步, file: policy/supermimic/references/dance.npz, cancel_transition_duration: 2.0}
+    sm_langzi_tiqiu: {display_name: 浪子踢球, file: policy/supermimic/references/langzi_tiqiu.npz}
 
 rl_policy:
   type: "onnx_infer"
@@ -1246,7 +1243,7 @@ rl_policy:
 
       # NJU SuperMimic-Repro-Sim2Real e13i_0291000（SuperMimic 复现，通用跟踪策略）。
       # 同一策略实例保持待命并执行 supermimic_actions 中的动作，切换动作只替换参考。
-      # 模型与参考动作由 scripts/prepare_supermimic_assets.py 生成，见 docs/supermimic.md。
+      # 模型与参考动作由 scripts/prepare_supermimic_assets.py 生成，见 resources/motion_modes/README.md。
       supermimic_mode:
         display_name: SuperMimic 运控
         switch_group: full_body

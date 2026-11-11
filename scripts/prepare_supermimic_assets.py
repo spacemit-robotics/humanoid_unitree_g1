@@ -41,6 +41,7 @@ DEFAULT_CLIPS = {
     "clap": "bones:clap_forced_002__A058_M",
     "point": "bones:point_dir_horizontal_right_hand_head_270_R_004__A201_M",
     "dance": "nju:shanshenbu",
+    "langzi_tiqiu": "nju:langzi_tiqiu",
 }
 
 
