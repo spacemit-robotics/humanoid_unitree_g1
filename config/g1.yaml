@@ -517,8 +517,7 @@ rl_policy:
         runtime: *g1_cpu_runtime
         display_name: 舞蹈
         switch_group: full_body
-        # The motion clock starts with the first inference; do not lag its targets.
-        policy_switch: {transition_duration: 0.0}
+        policy_switch: {transition_duration: 0.5}
         model_path: "policy/dance/dance_0605.onnx"
         # Same envelope as walking policies; out-of-range targets are clamped, not rejected.
         target_position_lower: *joint_lower
