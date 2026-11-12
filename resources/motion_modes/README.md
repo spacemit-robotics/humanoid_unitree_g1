@@ -123,39 +123,12 @@ SuperMimic 取消及模式交接时，原动作继续推进并逐渐减弱，过
 台阶场景启动命令为 `run_g1.sh --sim --stairs`。它仅增加仿真地形，不改变模型能力；
 当前行走策略不是专门的越障模型。
 
-## 资源准备
+## 资源文件
 
-SuperMimic 的模型与基础参考动作由 `scripts/prepare_supermimic_assets.py` 生成。
-准备解压后的 `e13i_0291000`（含 `policy_ir9.onnx`、`deploy_config.json`）、
-ProtoMotions 的 `g1_bones_seed_mini.pt` 和上游 `motions/custom_dance/`，在机型目录执行：
-
-```bash
-python3 scripts/prepare_supermimic_assets.py \
-    --bundle "<e13i_0291000目录>" \
-    --bones-library "<g1_bones_seed_mini.pt路径>" \
-    --nju-motions "<上游目录>/motions/custom_dance"
-```
-
-依赖 numpy、PyYAML、onnx、onnxruntime、torch 和 mujoco。
-脚本将模型的 `obs`、`goal`、`action` 改名为 `obs_hist`、`goal`、`actions`，不改变网络计算，
-并检查 YAML 与模型参数一致、改名后推理结果相同。
-输出位于 `policy/supermimic/`，包括 `policy.onnx`、`deploy_config.json`、`references/*.npz` 和 `SOURCES.json`。
-清单记录来源标识、文件名、校验和及动作范围，不记录本机路径。
-
-`--clip ID=bones:<片段>` 或 `--clip ID=nju:<CSV名>` 可指定其他片段；
-片段后加 `@<起>-<止>` 可去掉该区间，单位为秒，起止应处于同一步态相位且均位于片段内。
-`--hold`、`--blend` 分别调整首尾待命与过渡时长。
+模型和参考动作使用已发布的资源，由 `download_models_g1.sh` 下载到 `policy/`。
+SuperMimic 使用 `policy/supermimic/policy.onnx` 和 `references/*.npz`。
 NPZ 使用 50 Hz：`joint_pos`、`joint_vel` 为 `[T,29]`；`body_pos_w`、
 `body_quat_w`（wxyz）、`body_lin_vel_w`、`body_ang_vel_w` 仅含骨盆，`anchor_body_index: 0`。
-走路、鼓掌、指向来自 BONES-SEED，闪身步和浪子踢球分别来自上游 `shanshenbu.csv`、
-`langzi_tiqiu.csv`，具体片段及处理参数记录在清单中。
 模型权重及动作数据遵循各自来源的许可。
-
-交互参考使用 `scripts/prepare_interaction_references.py --motion <ID>=<轨迹.yaml>`，
-每个动作提供一个 `--motion`；ID 使用上表 SONIC 一列。输入包含 `time`（秒）、
-`q`（N×17，rad，左臂 7＋右臂 7＋腰 yaw/roll/pitch），可选 `hold: true` 在末帧停留 2 秒。
-先准备好两套模型的默认待命参考，再生成 `policy/sonic/<ID>/` 的 CSV 与
-`policy/supermimic/references/<ID>.npz`。脚本分别读取两套待命姿态，按模型要求转换关节顺序，
-重算速度并校验参考角度范围；生成清单 `INTERACTIONS.json` 记录输入校验和与处理参数。
 
 验证命令见 [策略测试](../../tests/policies/README.md)。

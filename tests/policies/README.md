@@ -14,12 +14,6 @@ output/build/g1_policy_tests/test_policy_catalog application/native/humanoid_uni
 逐个加载配置中的 ONNX，按各自的观测、动作映射和参考协议推理，检查维度和有限数值。
 该测试不包含物理仿真。
 
-参考动作裁剪的边界检查不需要模型资源：
-
-```bash
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_supermimic_assets.py
-```
-
 ## 三进程仿真
 
 ```bash

@@ -1255,7 +1255,6 @@ rl_policy:
 
       # NJU SuperMimic-Repro-Sim2Real e13i_0291000（SuperMimic 复现，通用跟踪策略）。
       # 同一策略实例保持待命并执行 supermimic_actions 中的动作，切换动作只替换参考。
-      # 模型与参考动作由 scripts/prepare_supermimic_assets.py 生成，见 resources/motion_modes/README.md。
       supermimic_mode:
         display_name: SuperMimic 运控
         switch_group: full_body
