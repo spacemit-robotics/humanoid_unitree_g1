@@ -79,7 +79,7 @@ driver:
 whole_body:
   config_file: "g1_hardware.yaml"
 
-# Shared terminal, web and Android operator service; simulation remains local-only.
+# Shared terminal, web, Android and gamepad operator service.
 operator_service:
   bind_address: "127.0.0.1"
   port: 8766
@@ -89,7 +89,7 @@ operator_service:
     # Default presets; policy command.teleop overrides these where configured.
     slow_limits: [0.6, 0.3, 0.5]
     fast_limits: [1.0, 0.3, 0.5]
-    # Client ramps for policies without their own command smoothing.
+    # Service ramps for policies without their own command smoothing.
     # [vx, vy, wz], in m/s^2, m/s^2, rad/s^2.
     acceleration: [1.0, 1.0, 2.0]
     deceleration: [2.5, 0.5, 2.5]
