@@ -14,12 +14,6 @@ output/build/g1_policy_tests/test_policy_catalog application/native/humanoid_uni
 逐个加载配置中的 ONNX，按各自的观测、动作映射和参考协议推理，检查维度和有限数值。
 该测试不包含物理仿真。
 
-参考动作裁剪的边界检查不需要模型资源：
-
-```bash
-python3 -B application/native/humanoid_unitree_g1/tests/policies/test_supermimic_assets.py
-```
-
 ## 三进程仿真
 
 ```bash
@@ -41,6 +35,13 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies supermimic_mode idle wait:60 idle action:sm_walk finished action:sm_clap finished action:sm_point finished action:sm_dance finished stand
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_dance wait:4 cancel action:sm_walk wait:5 cancel action:sm_point wait:3 stand
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_langzi_tiqiu finished wait:5 action:sm_langzi_tiqiu wait:2 cancel wait:6 stand
+```
+
+交互动作的完整播放与中途取消：
+
+```bash
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial sonic --policies idle action:handshake finished action:wave_chest finished action:wave_high finished action:blow_kiss finished action:clap_short finished action:wave_high wait:3 cancel wait:5 stand
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial supermimic_mode --policies idle action:sm_handshake finished action:sm_wave_chest finished action:sm_wave_high finished action:sm_blow_kiss finished action:sm_clap_short finished action:sm_wave_high wait:3 cancel wait:5 stand
 ```
 
 `action:<ID>` 触发模式内动作；`idle` 检查进入模式后不自动播放；`finished` 等待

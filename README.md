@@ -19,7 +19,7 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 常规运控（MJLab） | `walk_mjlab` | 29 轴行走，零命令站立 |
 | 常规运控（RL Gym） | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 站立待命；按动作列表播放行走转身、玛卡莲娜舞 |
+| SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
 | SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
 

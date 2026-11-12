@@ -288,7 +288,8 @@ behavior_manager:
 sonic_actions:
   default_action: standing
   transition_duration: 0.5
-  action_names: [standing, slow_walk, walk, macarena]
+  action_names: [standing, slow_walk, walk, macarena,
+                 handshake, wave_high, wave_chest, blow_kiss, clap_short]
   actions:
     standing:
       display_name: 平稳站立
@@ -310,13 +311,19 @@ sonic_actions:
       file: policy/sonic/macarena_001__A545
       motion_fps: 50
       loop: false
+    handshake: {display_name: 握手, file: policy/sonic/handshake, motion_fps: 50, loop: false}
+    wave_high: {display_name: 高举挥手, file: policy/sonic/wave_high, motion_fps: 50, loop: false}
+    wave_chest: {display_name: 胸前挥手, file: policy/sonic/wave_chest, motion_fps: 50, loop: false}
+    blow_kiss: {display_name: 飞吻, file: policy/sonic/blow_kiss, motion_fps: 50, loop: false}
+    clap_short: {display_name: 鼓掌（短）, file: policy/sonic/clap_short, motion_fps: 50, loop: false}
 
 # SuperMimic 动作目录：supermimic_mode 进入后保持 sm_standby，动作首尾回到同一待命姿态。
 supermimic_actions:
   default_action: sm_standby
   transition_duration: 1.0
   motion_fps: 50
-  action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance, sm_langzi_tiqiu]
+  action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance, sm_langzi_tiqiu,
+                 sm_handshake, sm_wave_high, sm_wave_chest, sm_blow_kiss, sm_clap_short]
   actions:
     sm_standby: {display_name: 待命, file: policy/supermimic/references/standby.npz}
     sm_walk: {display_name: 走路, file: policy/supermimic/references/walk.npz}
@@ -324,6 +331,11 @@ supermimic_actions:
     sm_point: {display_name: 指向, file: policy/supermimic/references/point.npz}
     sm_dance: {display_name: 闪身步, file: policy/supermimic/references/dance.npz, cancel_transition_duration: 2.0}
     sm_langzi_tiqiu: {display_name: 浪子踢球, file: policy/supermimic/references/langzi_tiqiu.npz}
+    sm_handshake: {display_name: 握手, file: policy/supermimic/references/handshake.npz}
+    sm_wave_high: {display_name: 高举挥手, file: policy/supermimic/references/wave_high.npz}
+    sm_wave_chest: {display_name: 胸前挥手, file: policy/supermimic/references/wave_chest.npz}
+    sm_blow_kiss: {display_name: 飞吻, file: policy/supermimic/references/blow_kiss.npz}
+    sm_clap_short: {display_name: 鼓掌（短）, file: policy/supermimic/references/clap_short.npz}
 
 rl_policy:
   type: "onnx_infer"
@@ -1243,7 +1255,6 @@ rl_policy:
 
       # NJU SuperMimic-Repro-Sim2Real e13i_0291000（SuperMimic 复现，通用跟踪策略）。
       # 同一策略实例保持待命并执行 supermimic_actions 中的动作，切换动作只替换参考。
-      # 模型与参考动作由 scripts/prepare_supermimic_assets.py 生成，见 resources/motion_modes/README.md。
       supermimic_mode:
         display_name: SuperMimic 运控
         switch_group: full_body

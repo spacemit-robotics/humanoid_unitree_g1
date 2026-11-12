@@ -73,7 +73,8 @@ class GamepadBindingsTest(unittest.TestCase):
             if name not in ("stand", "walk_mjlab", "walk_rlgym", "sonic_planner"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
         self.assertEqual(self.config["sonic_actions"]["action_names"],
-                         ["standing", "slow_walk", "walk", "macarena"])
+                         ["standing", "slow_walk", "walk", "macarena",
+                          "handshake", "wave_high", "wave_chest", "blow_kiss", "clap_short"])
 
     def test_locomode_commands_and_motion_actions(self):
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
@@ -114,7 +115,8 @@ class GamepadBindingsTest(unittest.TestCase):
         catalog = self.config["supermimic_actions"]
         self.assertEqual(catalog["default_action"], "sm_standby")
         self.assertEqual(catalog["action_names"],
-                         ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance", "sm_langzi_tiqiu"])
+                         ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance", "sm_langzi_tiqiu",
+                          "sm_handshake", "sm_wave_high", "sm_wave_chest", "sm_blow_kiss", "sm_clap_short"])
         self.assertEqual(list(catalog["actions"]), catalog["action_names"])
         for name, action in catalog["actions"].items():
             self.assertEqual(action["file"], f"policy/supermimic/references/{name.removeprefix('sm_')}.npz")
