@@ -42,11 +42,11 @@ robot_base:
       sched: fifo
       priority: 70
       lock_memory: true
-    # Planner and its CPU workers avoid control, motor USB and audio CPUs.
+    # Planner CPU work stays on CPU 0; its EP workers use CPUs 8-15.
     # No lock_memory: control_main already locks the control process; locking
     # from the planner would also lock tools that only load the model.
     motion_planner:
-      cpu_affinity: [0, 3]
+      cpu_affinity: [0]
       sched: other
       priority: 0
       lock_memory: false
@@ -1248,9 +1248,18 @@ rl_policy:
             random_seed: 1234
             allowed_pred_num_tokens: [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0]
             runtime:
-              provider: cpu
-              threads: 2
+              provider: auto
+              threads: 8
               ort_spinning: false
+              # SpaceMIT EP 2.0.7+: FP32 network on A100, geometric operations on X100.
+              # EP-only affinity keeps the same YAML usable for x86 CPU simulation.
+              ep_options:
+                SPACEMIT_EP_INTRA_THREAD_AFFINITY: "8;9;10;11;12;13;14;15"
+                SPACEMIT_EP_DISABLE_OP_TYPE_FILTER: "Abs;And;ArgMax;ArgMin;Atan;Clip;ConstantOfShape;Cos;CumSum;Equal;Expand;Floor;Gather;GatherElements;Greater;GreaterOrEqual;IsNaN;Less;LessOrEqual;Max;Min;Mod;Not;OneHot;Or;Range;ScatterElements;ScatterND;Shape;Sin;Slice;Sqrt;TopK;Where;Softmax"
+                SPACEMIT_EP_DISABLE_OP_NAME_FILTER: "/MatMul;/MatMul_1;/MatMul_2;/MatMul_3;/MatMul_4;/MatMul_5;/MatMul_6;/MatMul_7;/MatMul_8;/MatMul_9;/MatMul_10;/MatMul_11;/MatMul_12;/MatMul_13;/MatMul_14;/MatMul_15;/MatMul_16;/MatMul_17;/MatMul_18;/MatMul_19;/MatMul_20;/MatMul_21;/MatMul_22;/MatMul_23;/MatMul_24;/MatMul_25;/MatMul_26;/MatMul_27;/MatMul_28;/MatMul_29;/MatMul_30;/MatMul_31"
+                SPACEMIT_EP_DISABLE_FLOAT16_EPILOGUE: "1"
+                SPACEMIT_EP_DENSE_ACCURACY_LEVEL: "2"
+                SPACEMIT_EP_ENABLE_BLOCKLAYOUT: "0"
 
       # NJU SuperMimic-Repro-Sim2Real e13i_0291000（SuperMimic 复现，通用跟踪策略）。
       # 同一策略实例保持待命并执行 supermimic_actions 中的动作，切换动作只替换参考。
