@@ -1,0 +1,137 @@
+<mujoco model="G1 RGBD navigation scene">
+  <compiler angle="radian" meshdir="../meshes/"/>
+
+  <include file="g1_29dof_rev_1_0.xml"/>
+
+  <statistic center="2.5 0 1.2" extent="6.0"/>
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-140" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+    <!-- One world-anchored texture across the arena, shared with the RGBD ray renderer. -->
+    <texture type="2d" name="g1_rgbd_floor_unique" file="g1_rgbd_floor_unique.png"/>
+    <material name="groundplane" texture="g1_rgbd_floor_unique" texuniform="false" texrepeat="1 1" reflectance="0.1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="1 0 3.5" dir="0 0 -1" directional="true"/>
+    <!-- Generic smoke-test contact parameters; training values are not available. -->
+    <!-- Eighty-metre square arena, ten times the original width and length. -->
+    <geom name="floor" size="40 40 0.05" type="plane" group="2" rgba="0.65 0.72 0.78 1" material="groundplane" friction="1.2 0.02 0.001"/>
+    <geom name="slam_wall_front" type="box" group="2" pos="40 0 1.5" size="0.10 40 1.5" rgba="0.65 0.73 0.79 1"/>
+    <geom name="slam_wall_rear" type="box" group="2" pos="-40 0 1.5" size="0.10 40 1.5" rgba="0.68 0.70 0.62 1"/>
+    <geom name="slam_wall_left" type="box" group="2" pos="0 40 1.5" size="40 0.10 1.5" rgba="0.72 0.66 0.58 1"/>
+    <geom name="slam_wall_right" type="box" group="2" pos="0 -40 1.5" size="40 0.10 1.5" rgba="0.58 0.68 0.72 1"/>
+
+    <!-- All internal obstacles are at most 0.8 m high; keep the spawn area clear. -->
+    <geom name="slam_box_a" type="box" group="2" pos="1.8 -1.0 0.25" size="0.40 0.45 0.25" rgba="0.90 0.54 0.32 1"/>
+    <geom name="slam_box_b" type="box" group="2" pos="3.1 0.8 0.35" size="0.50 0.35 0.35" rgba="0.35 0.62 0.55 1"/>
+    <geom name="slam_box_c" type="box" group="2" pos="5.2 2.9 0.40" size="0.55 0.55 0.40" rgba="0.72 0.43 0.38 1"/>
+    <geom name="slam_box_d" type="box" group="2" pos="-3.2 2.8 0.30" size="0.30 0.65 0.30" rgba="0.42 0.55 0.76 1"/>
+    <geom name="slam_post_a" type="cylinder" group="2" pos="1.3 4.4 0.35" size="0.18 0.35" rgba="0.35 0.43 0.54 1"/>
+    <geom name="slam_post_b" type="cylinder" group="2" pos="-5.3 -2.9 0.40" size="0.24 0.40" rgba="0.48 0.50 0.38 1"/>
+    <geom name="slam_barrier_a" type="box" group="2" pos="10 -6 0.30" size="0.15 2.0 0.30" rgba="0.76 0.64 0.48 1"/>
+    <geom name="slam_barrier_b" type="box" group="2" pos="-10 5 0.30" size="2.0 0.15 0.30" rgba="0.48 0.65 0.67 1"/>
+    <geom name="slam_box_e" type="box" group="2" pos="8 10 0.35" size="0.80 0.60 0.35" rgba="0.62 0.57 0.72 1"/>
+    <geom name="slam_box_f" type="box" group="2" pos="-8 -10 0.35" size="0.70 0.75 0.35" rgba="0.82 0.60 0.41 1"/>
+    <geom name="slam_post_c" type="cylinder" group="2" pos="14 3 0.40" size="0.28 0.40" rgba="0.39 0.50 0.63 1"/>
+    <geom name="slam_post_d" type="cylinder" group="2" pos="-14 -3 0.40" size="0.28 0.40" rgba="0.66 0.54 0.42 1"/>
+
+    <!-- Staggered landmarks leave wide routes across the larger arena. -->
+    <geom name="slam_barrier_c" type="box" group="2" pos="20 16 0.35" size="2.4 0.18 0.35" rgba="0.67 0.58 0.48 1"/>
+    <geom name="slam_barrier_d" type="box" group="2" pos="-20 -16 0.35" size="0.18 2.4 0.35" rgba="0.47 0.61 0.68 1"/>
+    <geom name="slam_barrier_e" type="box" group="2" pos="19 -18 0.35" size="0.18 2.2 0.35" rgba="0.74 0.62 0.47 1"/>
+    <geom name="slam_barrier_f" type="box" group="2" pos="-19 18 0.35" size="2.2 0.18 0.35" rgba="0.51 0.64 0.59 1"/>
+    <geom name="slam_box_g" type="box" group="2" pos="12 23 0.25" size="0.90 0.75 0.25" rgba="0.88 0.48 0.36 1"/>
+    <geom name="slam_box_h" type="box" group="2" pos="-12 -23 0.25" size="0.75 0.90 0.25" rgba="0.44 0.55 0.76 1"/>
+    <geom name="slam_box_i" type="box" group="2" pos="25 -8 0.40" size="0.70 0.90 0.40" rgba="0.45 0.68 0.55 1"/>
+    <geom name="slam_box_j" type="box" group="2" pos="-25 8 0.40" size="0.90 0.70 0.40" rgba="0.76 0.53 0.61 1"/>
+    <geom name="slam_post_e" type="cylinder" group="2" pos="28 25 0.40" size="0.35 0.40" rgba="0.42 0.52 0.66 1"/>
+    <geom name="slam_post_f" type="cylinder" group="2" pos="-28 -25 0.40" size="0.35 0.40" rgba="0.68 0.54 0.40 1"/>
+    <geom name="slam_post_g" type="cylinder" group="2" pos="-29 27 0.40" size="0.35 0.40" rgba="0.54 0.67 0.53 1"/>
+    <geom name="slam_post_h" type="cylinder" group="2" pos="29 -27 0.40" size="0.35 0.40" rgba="0.70 0.50 0.60 1"/>
+    <geom name="slam_barrier_g" type="box" group="2" pos="31 4 0.30" size="0.18 2.5 0.30" rgba="0.75 0.63 0.49 1"/>
+    <geom name="slam_barrier_h" type="box" group="2" pos="-31 -4 0.30" size="2.5 0.18 0.30" rgba="0.48 0.62 0.70 1"/>
+    <geom name="slam_box_k" type="box" group="2" pos="3 -29 0.35" size="0.90 0.70 0.35" rgba="0.85 0.57 0.37 1"/>
+    <geom name="slam_box_l" type="box" group="2" pos="-3 29 0.35" size="0.70 0.90 0.35" rgba="0.49 0.66 0.62 1"/>
+    <!-- Extra landmarks within RGBD range of the starting area. -->
+    <geom name="slam_near_a" type="box" group="2" pos="4 -2.5 0.30" size="0.65 0.55 0.30" rgba="0.70 0.47 0.36 1"/>
+    <geom name="slam_near_b" type="cylinder" group="2" pos="6 0 0.38" size="0.30 0.38" rgba="0.39 0.62 0.66 1"/>
+    <geom name="slam_near_c" type="box" group="2" pos="4 5.5 0.35" size="0.50 0.70 0.35" rgba="0.68 0.54 0.72 1"/>
+    <geom name="slam_near_d" type="cylinder" group="2" pos="-2 5.5 0.30" size="0.25 0.30" rgba="0.73 0.62 0.43 1"/>
+    <geom name="slam_near_e" type="box" group="2" pos="-5 -0.7 0.28" size="0.55 0.65 0.28" rgba="0.44 0.65 0.57 1"/>
+    <geom name="slam_near_f" type="cylinder" group="2" pos="-4 -5.5 0.40" size="0.28 0.40" rgba="0.67 0.44 0.52 1"/>
+    <geom name="slam_near_g" type="box" group="2" pos="1 -6 0.32" size="0.60 0.50 0.32" rgba="0.52 0.58 0.75 1"/>
+    <geom name="slam_near_h" type="cylinder" group="2" pos="-1 -3.5 0.37" size="0.25 0.37" rgba="0.79 0.55 0.39 1"/>
+
+    <!-- A jittered 8 x 8 grid keeps landmarks within reach across the 80 m arena. -->
+    <geom name="slam_scatter_01" type="cylinder" group="2" pos="-35.1 -35.1 0.23" size="0.22 0.23" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_02" type="box" group="2" pos="-33.45 -22.9 0.33" size="0.45 0.6 0.33" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_03" type="box" group="2" pos="-34.55 -13.45 0.23" size="0.45 0.7 0.23" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_04" type="cylinder" group="2" pos="-32.9 -8 0.33" size="0.22 0.33" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_05" type="box" group="2" pos="-34 5.45 0.23" size="0.45 0.6 0.23" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_06" type="box" group="2" pos="-35.1 14.9 0.33" size="0.45 0.7 0.33" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_07" type="cylinder" group="2" pos="-33.45 27.1 0.23" size="0.22 0.23" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_08" type="box" group="2" pos="-34.55 36.55 0.33" size="0.45 0.6 0.33" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_09" type="box" group="2" pos="-24 -34 0.28" size="0.55 0.5 0.28" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_10" type="box" group="2" pos="-25.1 -24.55 0.38" size="0.55 0.6 0.38" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_11" type="cylinder" group="2" pos="-23.45 -15.1 0.28" size="0.22 0.28" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_12" type="box" group="2" pos="-24.55 -2.9 0.38" size="0.55 0.5 0.38" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_13" type="box" group="2" pos="-22.9 3 0.28" size="0.55 0.6 0.28" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_14" type="cylinder" group="2" pos="-24 16 0.38" size="0.22 0.38" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_15" type="box" group="2" pos="-25.1 25.45 0.28" size="0.55 0.5 0.28" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_16" type="box" group="2" pos="-23.45 34.9 0.38" size="0.55 0.6 0.38" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_17" type="box" group="2" pos="-12.9 -32.9 0.33" size="0.65 0.5 0.33" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_18" type="cylinder" group="2" pos="-14 -23.45 0.23" size="0.22 0.23" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_19" type="box" group="2" pos="-15.1 -14 0.33" size="0.65 0.7 0.33" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_20" type="box" group="2" pos="-13.45 -7.5 0.23" size="0.65 0.5 0.23" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_21" type="cylinder" group="2" pos="-14.55 4.9 0.33" size="0.22 0.33" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_22" type="box" group="2" pos="-12.9 17.1 0.23" size="0.65 0.7 0.23" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_23" type="box" group="2" pos="-14 26.55 0.33" size="0.65 0.5 0.33" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_24" type="cylinder" group="2" pos="-15.1 36 0.23" size="0.22 0.23" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_25" type="cylinder" group="2" pos="-4.55 -34.55 0.38" size="0.22 0.38" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_26" type="box" group="2" pos="-2.9 -25.1 0.28" size="0.45 0.6 0.28" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_27" type="box" group="2" pos="-4 -12.9 0.38" size="0.45 0.7 0.38" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_28" type="cylinder" group="2" pos="-8 -4 0.28" size="0.22 0.28" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_29" type="box" group="2" pos="-6.5 8 0.38" size="0.45 0.6 0.38" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_30" type="box" group="2" pos="-4.55 15.45 0.28" size="0.45 0.7 0.28" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_31" type="cylinder" group="2" pos="-2.9 24.9 0.38" size="0.22 0.38" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_32" type="box" group="2" pos="-4 37.1 0.28" size="0.45 0.6 0.28" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_33" type="box" group="2" pos="6.55 -33.45 0.23" size="0.55 0.5 0.23" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_34" type="box" group="2" pos="5.45 -24 0.33" size="0.55 0.6 0.33" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_35" type="cylinder" group="2" pos="7.1 -14.55 0.23" size="0.22 0.23" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_36" type="box" group="2" pos="6 -5.1 0.33" size="0.55 0.5 0.33" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_37" type="box" group="2" pos="7.8 6.8 0.23" size="0.55 0.6 0.23" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_38" type="cylinder" group="2" pos="6.55 16.55 0.33" size="0.22 0.33" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_39" type="box" group="2" pos="5.45 26 0.23" size="0.55 0.5 0.23" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_40" type="box" group="2" pos="7.1 35.45 0.33" size="0.55 0.6 0.33" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_41" type="box" group="2" pos="14.9 -35.1 0.28" size="0.65 0.5 0.28" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_42" type="cylinder" group="2" pos="16.55 -22.9 0.38" size="0.22 0.38" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_43" type="box" group="2" pos="15.45 -13.45 0.28" size="0.65 0.7 0.28" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_44" type="box" group="2" pos="17.1 -4 0.38" size="0.65 0.5 0.38" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_45" type="cylinder" group="2" pos="16 5.45 0.28" size="0.22 0.28" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_46" type="box" group="2" pos="14.9 14.9 0.38" size="0.65 0.7 0.38" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_47" type="box" group="2" pos="16.55 27.1 0.28" size="0.65 0.5 0.28" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_48" type="cylinder" group="2" pos="15.45 36.55 0.38" size="0.22 0.38" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_49" type="cylinder" group="2" pos="26 -34 0.33" size="0.22 0.33" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_50" type="box" group="2" pos="24.9 -24.55 0.23" size="0.45 0.6 0.23" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_51" type="box" group="2" pos="26.55 -15.1 0.33" size="0.45 0.7 0.33" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_52" type="cylinder" group="2" pos="25.45 -2.9 0.23" size="0.22 0.23" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_53" type="box" group="2" pos="27.1 6.55 0.33" size="0.45 0.6 0.33" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_54" type="box" group="2" pos="26 16 0.23" size="0.45 0.7 0.23" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_55" type="cylinder" group="2" pos="24.9 25.45 0.33" size="0.22 0.33" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_56" type="box" group="2" pos="26.55 34.9 0.23" size="0.45 0.6 0.23" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_57" type="box" group="2" pos="37.1 -32.9 0.38" size="0.55 0.5 0.38" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_58" type="box" group="2" pos="36 -23.45 0.28" size="0.55 0.6 0.28" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_59" type="cylinder" group="2" pos="34.9 -14 0.38" size="0.22 0.38" rgba="0.43 0.64 0.61 1"/>
+    <geom name="slam_scatter_60" type="box" group="2" pos="36.55 -4.55 0.28" size="0.55 0.5 0.28" rgba="0.55 0.58 0.75 1"/>
+    <geom name="slam_scatter_61" type="box" group="2" pos="35.45 4.9 0.38" size="0.55 0.6 0.38" rgba="0.76 0.64 0.44 1"/>
+    <geom name="slam_scatter_62" type="cylinder" group="2" pos="37.1 17.1 0.28" size="0.22 0.28" rgba="0.61 0.48 0.66 1"/>
+    <geom name="slam_scatter_63" type="box" group="2" pos="36 26.55 0.38" size="0.55 0.5 0.38" rgba="0.72 0.50 0.39 1"/>
+    <geom name="slam_scatter_64" type="box" group="2" pos="34.9 36 0.28" size="0.55 0.6 0.28" rgba="0.43 0.64 0.61 1"/>
+  </worldbody>
+</mujoco>
