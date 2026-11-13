@@ -83,6 +83,11 @@ class PolicyTargetLimitsTest(unittest.TestCase):
                 self.assertEqual(observation["segment_0_terms"], ["sonic_latent"])
                 self.assertEqual(observation["segment_1_length"], 10)
         planner = self.policies["sonic_planner"]["policy_adapter"]["planner"]
+        self.assertEqual(planner_cpus, {0})
+        self.assertEqual(planner["runtime"]["provider"], "auto")
+        self.assertEqual(planner["runtime"]["threads"], 8)
+        self.assertEqual(planner["runtime"]["ep_options"]["SPACEMIT_EP_INTRA_THREAD_AFFINITY"],
+                         "8;9;10;11;12;13;14;15")
         self.assertFalse(planner["runtime"]["ort_spinning"])
         self.assertEqual(planner["lookahead"], 0.04)
         self.assertEqual(planner["check_interval"], 0.1)
