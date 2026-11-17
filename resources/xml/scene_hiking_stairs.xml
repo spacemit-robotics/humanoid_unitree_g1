@@ -1,0 +1,68 @@
+<mujoco model="G1 Hiking SDK">
+  <include file="g1_29dof_rev_1_0.xml" />
+  <compiler angle="radian" meshdir="../meshes" />
+  <!-- SDK runtime overrides timestep with simulation.mujoco.sim_dt from YAML. -->
+  <option timestep="0.001" integrator="implicit" iterations="100" ls_iterations="50" />
+  <statistic center="6.0 -0.5 0.70" extent="9.0" />
+  <visual>
+    <map znear="0.0001111111111111111" />
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="-130" elevation="-20" />
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane_texture" builtin="checker" mark="edge" rgb1="0.20 0.30 0.40" rgb2="0.10 0.20 0.30" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane_texture" texuniform="true" texrepeat="5 5" reflectance="0.2" />
+    <material name="real_parkour_obstacle" rgba="0.30 0.70 0.90 1" />
+    <material name="added_stairs" rgba="0.55 0.57 0.60 1" />
+    <material name="descending_stairs" rgba="0.42 0.44 0.47 1" />
+    <material name="curb_concrete" rgba="0.48 0.50 0.52 1" />
+    <material name="timber_obstacle" rgba="0.43 0.25 0.12 1" />
+    <material name="stepping_block" rgba="0.72 0.42 0.16 1" />
+    <material name="bollard" rgba="0.82 0.24 0.12 1" />
+    <material name="obstacle_08cm" rgba="0.25 0.76 0.45 1" />
+    <material name="obstacle_12cm" rgba="0.85 0.78 0.22 1" />
+    <material name="obstacle_16cm" rgba="0.94 0.52 0.18 1" />
+    <material name="obstacle_20cm" rgba="0.88 0.25 0.20 1" />
+    <mesh name="real_parkour_climb_15" file="terrains/climb_15/box_models/box1.obj" scale="0.7415730337078652 0.7415730337078652 0.7415730337078652" />
+  </asset>
+  <worldbody>
+    <light pos="-1.8 -2.5 8" dir="0 0 -1" directional="true" />
+    <geom name="floor" type="plane" size="0 0 0.05" friction="0.9 0.005 0.0001" material="groundplane" density="0" />
+    <body name="real_parkour_climb_15" pos="-2.11928858281657 -2.69159992245654 0" quat="0.54770673041174356 0 0 -0.83667038758502599">
+      <geom name="real_parkour_climb_15_visual" type="mesh" mesh="real_parkour_climb_15" pos="0 0 -0.07415730337078652" group="2" contype="0" conaffinity="0" rgba="0.30 0.70 0.90 0.50" density="0" />
+      <geom name="real_parkour_climb_15_collision" type="mesh" mesh="real_parkour_climb_15" pos="0 0 -0.07415730337078652" group="0" contype="1" conaffinity="1" condim="3" friction="0.9 0.005 0.0001" material="real_parkour_obstacle" density="0" />
+    </body>
+    <body name="added_stairs" pos="-5.8 -2.5 0">
+      <geom name="stair_1" type="box" pos="7.35 2.50 0.08" size="0.15 0.90 0.08" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_2" type="box" pos="7.65 2.50 0.16" size="0.15 0.90 0.16" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_3" type="box" pos="7.95 2.50 0.24" size="0.15 0.90 0.24" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_4" type="box" pos="8.25 2.50 0.32" size="0.15 0.90 0.32" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_5" type="box" pos="8.55 2.50 0.40" size="0.15 0.90 0.40" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_6" type="box" pos="8.85 2.50 0.48" size="0.15 0.90 0.48" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_top" type="box" pos="9.75 2.50 0.48" size="0.75 0.90 0.48" group="0" friction="0.9 0.005 0.0001" material="added_stairs" density="0" />
+      <geom name="stair_down_1" type="box" pos="10.65 2.50 0.40" size="0.15 0.90 0.40" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+      <geom name="stair_down_2" type="box" pos="10.95 2.50 0.32" size="0.15 0.90 0.32" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+      <geom name="stair_down_3" type="box" pos="11.25 2.50 0.24" size="0.15 0.90 0.24" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+      <geom name="stair_down_4" type="box" pos="11.55 2.50 0.16" size="0.15 0.90 0.16" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+      <geom name="stair_down_5" type="box" pos="11.85 2.50 0.08" size="0.15 0.90 0.08" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+    </body>
+    <body name="variable_height_obstacles" pos="-5.8 -2.5 0">
+      <geom name="obstacle_08cm" type="box" pos="5.20 -2.50 0.04" size="0.20 1.50 0.04" group="0" friction="0.9 0.005 0.0001" material="obstacle_08cm" density="0" />
+      <geom name="obstacle_12cm" type="box" pos="6.80 -2.50 0.06" size="0.20 1.50 0.06" group="0" friction="0.9 0.005 0.0001" material="obstacle_12cm" density="0" />
+      <geom name="obstacle_16cm" type="box" pos="8.40 -2.50 0.08" size="0.20 1.50 0.08" group="0" friction="0.9 0.005 0.0001" material="obstacle_16cm" density="0" />
+      <geom name="obstacle_20cm" type="box" pos="10.00 -2.50 0.10" size="0.20 1.50 0.10" group="0" friction="0.9 0.005 0.0001" material="obstacle_20cm" density="0" />
+    </body>
+    <body name="scattered_obstacles" pos="-5.8 -2.5 0">
+      <geom name="scattered_curb" type="box" pos="2.20 -5.05 0.06" quat="0.99756 0 0 0.06976" size="0.55 0.10 0.06" group="0" friction="0.85 0.005 0.0001" material="curb_concrete" density="0" />
+      <geom name="scattered_step_low" type="box" pos="3.35 -5.30 0.09" quat="0.99905 0 0 -0.04362" size="0.28 0.28 0.09" group="0" friction="0.9 0.005 0.0001" material="stepping_block" density="0" />
+      <geom name="scattered_step_high" type="box" pos="4.25 -4.75 0.12" quat="0.99144 0 0 0.13053" size="0.32 0.32 0.12" group="0" friction="0.9 0.005 0.0001" material="stepping_block" density="0" />
+      <geom name="scattered_timber" type="box" pos="5.50 -5.10 0.10" quat="0.99452 0 0 -0.10453" size="0.75 0.12 0.10" group="0" friction="0.8 0.005 0.0001" material="timber_obstacle" density="0" />
+      <geom name="scattered_concrete_block" type="box" pos="6.75 -5.35 0.14" quat="0.97630 0 0 0.21644" size="0.30 0.24 0.14" group="0" friction="0.9 0.005 0.0001" material="curb_concrete" density="0" />
+      <geom name="scattered_bollard_left" type="cylinder" pos="7.85 -4.62 0.30" size="0.16 0.30" group="0" friction="0.85 0.005 0.0001" material="bollard" density="0" />
+      <geom name="scattered_bollard_right" type="cylinder" pos="8.35 -5.58 0.30" size="0.16 0.30" group="0" friction="0.85 0.005 0.0001" material="bollard" density="0" />
+      <geom name="scattered_final_platform" type="box" pos="9.55 -5.05 0.16" quat="0.99619 0 0 -0.08716" size="0.55 0.50 0.16" group="0" friction="0.9 0.005 0.0001" material="stepping_block" density="0" />
+    </body>
+  </worldbody>
+</mujoco>

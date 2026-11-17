@@ -21,7 +21,27 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
+| 感知运控（Hiking） | `hiking` | SDK torso 相机深度经 ZMQ 输入；先支持仿真，独立场景使用 16 cm 楼梯 |
 | SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
+
+## Hiking 感知仿真
+
+完成 SDK 编译后，在 `spacemit_robot` 目录启动：
+
+```bash
+# 使用统一下载入口准备模型（包含 Hiking encoder 和 actor）
+bash application/native/humanoid_unitree_g1/scripts/download_models_g1.sh
+
+# 终端 1：SDK 仿真、ZMQ 深度发布和 TUI，在 16 cm 楼梯入口出生
+output/staging/bin/run_g1.sh --sim --stairs
+```
+
+启动保持 `POWER_OFF`，默认策略由 `g1.yaml` 决定（当前为 `stand`）。
+在终端进入 `DAMP`，选择“感知运控（Hiking）”或其他模型，再依次 `HOME → ZERO → RL`。
+已处于 RL 时，可直接选择 Hiking；当前模型会收零速度，待感知就绪后平滑交接。
+Hiking 建议前进速度 `0.5 m/s`。仅关闭 TUI 加 `--no-tui`；无窗口将 `simulation.mujoco.viewer` 设为 `false`。
+PC 额外安装 `libzmq3-dev libegl1-mesa-dev`。
+相机位姿、协议、验证命令及实机桥接边界见 [感知运控说明](docs/perceptive_control.md)。
 
 ## 快速开始
 

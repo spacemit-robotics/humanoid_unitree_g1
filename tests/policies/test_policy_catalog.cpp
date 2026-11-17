@@ -28,6 +28,10 @@ int main(int argc, char **argv) {
             const auto name = entry.first.as<std::string>();
             const auto config = rl_policy::LoadPolicyConfigFromYaml(argv[1], name, root);
             const auto adapter_config = behavior_manager::policy_adapter::LoadConfig(argv[1], name, root);
+            if (adapter_config.type == "hiking") {
+                std::cout << "SKIP hiking: requires live depth; use test_runtime.py --initial hiking\n";
+                continue;
+            }
             auto adapter = adapter_config.Enabled()
                 ? behavior_manager::policy_adapter::Create(adapter_config, config.exec_cfg) : nullptr;
             rl_policy::PolicyExecutor policy;

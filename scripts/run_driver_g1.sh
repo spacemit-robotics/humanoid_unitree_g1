@@ -37,7 +37,7 @@ if [[ -n "$BACKEND_OVERRIDE" ]]; then
 fi
 if [[ "$STAIRS" == yes ]]; then
     [[ "$BACKEND" == mujoco ]] || { echo "台阶场景仅用于仿真。" >&2; exit 1; }
-    DRIVER_ARGS+=(--scene scene_stairs.xml)
+    DRIVER_ARGS+=(--scene scene_hiking_stairs.xml)
 fi
 if [[ "$BACKEND" == "whole_body" ]]; then
     # Serial access is provided by the board's device permissions; do not elevate here.

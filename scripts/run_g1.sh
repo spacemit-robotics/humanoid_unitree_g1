@@ -8,6 +8,7 @@ usage() {
     echo "Usage: run_g1.sh --sim [--stairs] [--no-tui] [--terminal-only] [--listen ADDRESS] [--public-url URL]"
     echo "       run_g1.sh --real [--tui] [--listen ADDRESS] [--public-url URL]"
     echo "仿真默认启动 TUI；实机默认启动三个核心进程，网页和 App 共用 HMI。"
+    echo "--stairs 使用 16 cm 楼梯；运控模型在终端选择，启动不自动切换模型。"
 }
 
 MODE="${1:-}"
