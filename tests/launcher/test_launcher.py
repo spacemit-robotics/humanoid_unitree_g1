@@ -9,6 +9,7 @@ import http.client
 import os
 from pathlib import Path
 import pty
+import re
 import select
 import signal
 import socket
@@ -134,8 +135,8 @@ def run_case(sdk, machine, output, fail_hmi):
                 response = connection.getresponse()
                 response.read()
                 connection.close()
-                if response.status != 404:
-                    raise RuntimeError(f"Unexpected web entry: {path} {response.status}")
+                if response.status != 200:
+                    raise RuntimeError(f"Missing simulation web entry: {path} {response.status}")
             attach_tui(sdk, environment, output)
             if not ready():
                 raise RuntimeError("Closing the attached TUI stopped the core services")
@@ -172,7 +173,7 @@ def run_case(sdk, machine, output, fail_hmi):
                 result = subprocess.run(  # noqa: S603
                     status_command, env=environment, capture_output=True, timeout=3,
                     check=True, text=True)
-                if not result.stdout.rstrip().endswith("owner="):
+                if not re.search(r"\bowner=(?:\s|$)", result.stdout):
                     raise RuntimeError("Restart restored old control ownership")
                 time.sleep(2)
                 process.send_signal(signal.SIGINT)
@@ -203,7 +204,7 @@ def run_case(sdk, machine, output, fail_hmi):
                     os.killpg(pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-    print(f"PASS: {'failed HMI' if fail_hmi else 'Ctrl+C'} cleanup; no-tui, attach, duplicate, no web")
+    print(f"PASS: {'failed HMI' if fail_hmi else 'Ctrl+C'} cleanup; no-tui, attach, duplicate, web")
 
 
 def main():

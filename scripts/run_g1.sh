@@ -5,7 +5,7 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: run_g1.sh --sim [--stairs] [--no-tui]"
+    echo "Usage: run_g1.sh --sim [--stairs] [--no-tui] [--terminal-only] [--listen ADDRESS] [--public-url URL]"
     echo "       run_g1.sh --real [--tui] [--listen ADDRESS] [--public-url URL]"
     echo "仿真默认启动 TUI；实机默认启动三个核心进程，网页和 App 共用 HMI。"
 }
@@ -24,12 +24,13 @@ while (($#)); do
     case "$1" in
         --tui) TUI=yes ;;
         --no-tui) TUI=no ;;
+        --terminal-only) HMI_ARGS+=("$1") ;;
         --stairs)
             [[ "$MODE" == --sim ]] || { echo "台阶场景仅用于仿真。" >&2; exit 1; }
             DRIVER_ARGS+=(--stairs) ;;
         --listen|--public-url)
-            if [[ "$MODE" != --real || $# -lt 2 ]]; then
-                echo "网络入口只用于 --real 实机模式。" >&2
+            if [[ $# -lt 2 ]]; then
+                echo "$1 缺少参数。" >&2
                 exit 1
             fi
             HMI_ARGS+=("$1" "$2"); shift ;;
@@ -248,16 +249,14 @@ if [[ "$MODE" == --real && -x "$BIN/operator_audio" ]]; then
         ) 2>&1 &
     AUDIO_PID=$!
 fi
-if [[ "$MODE" == --real && -x "$BIN/hmi_gamepad" ]]; then
+if [[ -x "$BIN/hmi_gamepad" ]]; then
     setsid "$BIN/hmi_gamepad" "$CONFIG" --connection "$CONNECTION" \
         7>&- 9>&- </dev/null > >(
             python3 "$LOG_TOOL" sink --config "$CONFIG" --file "$LOG_DIR/gamepad.log" 7>&- 9>&-
         ) 2>&1 &
     GAMEPAD_PID=$!
 fi
-if [[ "$MODE" == --real ]]; then
-    sed -n '/^\[hmi\]/p' "$LOG_DIR/hmi.log" 2>/dev/null || true
-fi
+sed -n '/^\[hmi\]/p' "$LOG_DIR/hmi.log" 2>/dev/null || true
 echo "Ctrl+C 退出本次启动的全部进程；独立 TUI：run_hmi_tui_g1.sh"
 if [[ "$TUI" == yes ]]; then
     "$BIN/hmi_tui" --connection "$CONNECTION" 9>&- <&0 &
