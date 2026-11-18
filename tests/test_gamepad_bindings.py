@@ -62,7 +62,9 @@ class GamepadBindingsTest(unittest.TestCase):
     def test_catalog(self):
         catalog = self.config["rl_policy"]["onnx_infer"]
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
-        self.assertEqual(mapped, set(catalog["policy_names"]))
+        self.assertEqual(set(catalog["policy_names"]) - mapped, {"hiking"})
+        self.assertTrue(mapped.issubset(catalog["policy_names"]))
+        self.assertEqual(set(catalog["policies"]["hiking"].get("enabled_in", ["sim", "real"])), {"sim", "real"})
         self.assertEqual(len(mapped), 6)
         self.assertNotIn("protomotions", catalog["policy_names"])
         self.assertEqual(catalog["default_policy"], "stand")
@@ -70,11 +72,24 @@ class GamepadBindingsTest(unittest.TestCase):
             if "policy_actions" not in policy:
                 self.assertTrue(policy["model_path"].endswith(".onnx"))
             self.assertEqual(policy["switch_group"], "full_body")
-            if name not in ("stand", "walk_mjlab", "walk_rlgym"):
+            if name not in ("stand", "walk_mjlab", "walk_rlgym", "hiking"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
         self.assertEqual(self.config["sonic_actions"]["action_names"],
                          ["standing", "slow_walk", "walk", "macarena",
                           "handshake", "wave_high", "wave_chest", "blow_kiss", "clap_short"])
+
+    def test_rgbd_planner(self):
+        package = Path(__file__).resolve().parents[1]
+        config = yaml.safe_load((package / "config/g1_rgbd.yaml").read_text())
+        self.assertEqual(config["simulation"]["mujoco"]["scene_xml"], "scene_rgbd.xml")
+        catalog = config["rl_policy"]["onnx_infer"]
+        self.assertNotIn("sonic_planner", catalog["policy_names"])
+        self.assertNotIn("sonic_planner", catalog["policies"])
+        sonic = catalog["policies"]["sonic"]
+        normal = self.config["rl_policy"]["onnx_infer"]["policies"]["sonic"]
+        self.assertEqual(sonic, normal)
+        self.assertEqual(config["motion_planners"], self.config["motion_planners"])
+        self.assertEqual(catalog["policies"]["dance_mode"]["enabled_in"], ["sim"])
 
     def test_motion_planners(self):
         catalog = self.config["rl_policy"]["onnx_infer"]

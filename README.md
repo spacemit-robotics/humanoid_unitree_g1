@@ -20,6 +20,7 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 常规运控（RL Gym） | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
 | 舞蹈运控 | `dance_mode` | 仅仿真可用（`enabled_in: [sim]`）；进入后站立待命，从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作，或启动“SONIC 规划行走”规划器后用速度指令行走 |
+| 感知运控（Hiking） | `hiking` | SDK torso 相机深度经 ZMQ 输入；支持仿真和 RealSense 实机桥接 |
 | SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
 
 ## Hiking 感知仿真

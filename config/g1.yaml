@@ -401,7 +401,7 @@ rl_policy:
 
   onnx_infer:
     # Each entry retains its own observation/action contract and controller gains.
-    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, supermimic_mode]
+    policy_names: [stand, walk_mjlab, walk_rlgym, dance_mode, sonic, supermimic_mode, hiking]
     default_policy: stand
 
     policies:

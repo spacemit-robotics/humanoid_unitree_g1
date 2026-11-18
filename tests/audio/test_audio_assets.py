@@ -52,7 +52,7 @@ class AudioAssetsTest(unittest.TestCase):
         machine = yaml.safe_load((PACKAGE / "config/g1.yaml").read_text())
         catalog = machine["rl_policy"]["onnx_infer"]
         self.assertEqual({key.removeprefix("policy.") for key in clips if key.startswith("policy.")},
-                         set(catalog["policy_names"]))
+                         set(catalog["policy_names"]) - {"hiking"})
         actions = set()
         for name in catalog["policy_names"]:
             policy = catalog["policies"][name]
