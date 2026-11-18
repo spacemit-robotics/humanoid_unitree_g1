@@ -63,7 +63,9 @@ class AudioAssetsTest(unittest.TestCase):
         self.assertLessEqual(announced, actions)
         self.assertNotIn("policy.protomotions", clips)
         self.assertEqual(clips["policy.stand"], "locomotion_mode.wav")
-        self.assertEqual(clips["policy.sonic_planner"], "sonic_planner_mode.wav")
+        self.assertEqual({key.removeprefix("planner.") for key in clips if key.startswith("planner.")},
+                         set(machine["motion_planners"]))
+        self.assertEqual(clips["planner.sonic_planner"], "sonic_planner_mode.wav")
         self.assertEqual(clips["fault"], "fault.wav")
         self.assertEqual(config["fault_repeat_interval_s"], 15.0)
         self.assertEqual(clips["gamepad.connected"], "gamepad_connected.wav")

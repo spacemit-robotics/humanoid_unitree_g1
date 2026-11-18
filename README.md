@@ -18,10 +18,8 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 常规运控（LocoMode） | `stand` | 默认模式；29 轴站走策略，零速站立，收到速度后行走 |
 | 常规运控（MJLab） | `walk_mjlab` | 29 轴行走，零命令站立 |
 | 常规运控（RL Gym） | `walk_rlgym` | 12 轴腿部策略，上身保持准备姿态；零速仍有步态相位 |
-| 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作 |
-| SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
-| 感知运控（Hiking） | `hiking` | SDK torso 相机深度经 ZMQ 输入；支持仿真和 RealSense 实机桥接 |
+| 舞蹈运控 | `dance_mode` | 仅仿真可用（`enabled_in: [sim]`）；进入后站立待命，从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
+| SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作，或启动“SONIC 规划行走”规划器后用速度指令行走 |
 | SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
 
 ## Hiking 感知仿真
@@ -177,6 +175,8 @@ run_g1.sh --real --tui
 | 实机反馈未就绪 | 按 [硬件接入](docs/hardware.md) 核对设备路径、总线归属、IMU 和标定数据，保持 POWER_OFF 排查 |
 | RL 控制不稳定 / 立即摔倒 | 在可靠支撑下检查关节顺序、零位、IMU 方向，以及模型配套的观测、动作尺度和增益 |
 | 选择舞蹈运控后没有跳舞 | 该模式先站立待命，需在动作列表中触发具体动作 |
+| 实机的模式列表中没有舞蹈运控 | 该模式配置为 `enabled_in: [sim]`，只在仿真后端列出 |
+| SONIC 运控中推摇杆不走 | 先在规划器面板（TUI 按 `N`，手柄 LT+↑）启动“SONIC 规划行走”，状态变为运行中后再给速度 |
 
 ## 版本与发布
 

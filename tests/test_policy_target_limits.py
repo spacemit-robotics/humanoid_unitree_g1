@@ -67,7 +67,7 @@ class PolicyTargetLimitsTest(unittest.TestCase):
         reserved = {threads[name]["cpu_id"] for name in ("rl_infer", "control_main", "driver_main")}
         self.assertEqual(threads["motion_planner"]["sched"], "other")
         self.assertFalse(planner_cpus & (reserved | {4, 5, 6}))
-        for name in ("sonic", "sonic_planner"):
+        for name in ("sonic",):
             with self.subTest(policy=name):
                 runtime = self.policies[name]["runtime"]
                 self.assertFalse(runtime["ort_spinning"])
@@ -82,7 +82,9 @@ class PolicyTargetLimitsTest(unittest.TestCase):
                 observation = self.policies[name]["observation"]
                 self.assertEqual(observation["segment_0_terms"], ["sonic_latent"])
                 self.assertEqual(observation["segment_1_length"], 10)
-        planner = self.policies["sonic_planner"]["policy_adapter"]["planner"]
+        self.assertEqual(self.policies["sonic"]["policy_adapter"]["planners"], ["sonic_planner"])
+        planner = self.config["motion_planners"]["sonic_planner"]
+        self.assertEqual(planner.get("thread", "motion_planner"), "motion_planner")
         self.assertEqual(planner_cpus, {0})
         self.assertEqual(planner["runtime"]["provider"], "auto")
         self.assertEqual(planner["runtime"]["threads"], 8)

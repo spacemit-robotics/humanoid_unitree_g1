@@ -30,7 +30,7 @@ class GamepadBindingsTest(unittest.TestCase):
             ("LT+B", ""): ("policy", "walk_mjlab", 1000, "press"),
             ("LT+X", ""): ("policy", "dance_mode", 1000, "press"),
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
-            ("LT+UP", ""): ("policy", "sonic_planner", 1000, "press"),
+            ("LT+UP", "sonic"): ("planner", "sonic_planner", 1000, "press"),
             ("LT+DOWN", ""): ("policy", "walk_rlgym", 1000, "press"),
             ("LT+LEFT", ""): ("policy", "supermimic_mode", 1000, "press"),
             ("RT+A", "dance_mode"): ("action", "dance", 1000, "press"),
@@ -44,7 +44,7 @@ class GamepadBindingsTest(unittest.TestCase):
             ("RT+Y", "supermimic_mode"): ("action", "sm_dance", 1000, "press"),
             ("Y", "walk_mjlab"): ("preset", "toggle", 0, "tap"),
             ("Y", "walk_rlgym"): ("preset", "toggle", 0, "tap"),
-            ("Y", "sonic_planner"): ("preset", "toggle", 0, "tap"),
+            ("Y", "sonic"): ("preset", "toggle", 0, "tap"),
             ("RT+A", "sonic"): ("action", "standing", 1000, "press"),
             ("RT+B", "sonic"): ("action", "walk", 1000, "press"),
             ("RT+X", "sonic"): ("action", "macarena", 1000, "press"),
@@ -63,18 +63,36 @@ class GamepadBindingsTest(unittest.TestCase):
         catalog = self.config["rl_policy"]["onnx_infer"]
         mapped = {binding["value"] for binding in self.bindings if binding["operation"] == "policy"}
         self.assertEqual(mapped, set(catalog["policy_names"]))
-        self.assertEqual(len(mapped), 7)
+        self.assertEqual(len(mapped), 6)
         self.assertNotIn("protomotions", catalog["policy_names"])
         self.assertEqual(catalog["default_policy"], "stand")
         for name, policy in catalog["policies"].items():
             if "policy_actions" not in policy:
                 self.assertTrue(policy["model_path"].endswith(".onnx"))
             self.assertEqual(policy["switch_group"], "full_body")
-            if name not in ("stand", "walk_mjlab", "walk_rlgym", "sonic_planner"):
+            if name not in ("stand", "walk_mjlab", "walk_rlgym"):
                 self.assertEqual(policy["command"]["limits"], {"max_vx": 0, "max_vy": 0, "max_wz": 0})
         self.assertEqual(self.config["sonic_actions"]["action_names"],
                          ["standing", "slow_walk", "walk", "macarena",
                           "handshake", "wave_high", "wave_chest", "blow_kiss", "clap_short"])
+
+    def test_motion_planners(self):
+        catalog = self.config["rl_policy"]["onnx_infer"]
+        planners = self.config["motion_planners"]
+        self.assertEqual(list(planners), ["sonic_planner"])
+        self.assertEqual(planners["sonic_planner"]["type"], "sonic_planner")
+        self.assertEqual(planners["sonic_planner"]["category"], "realtime")
+        self.assertIn("规划", planners["sonic_planner"]["display_name"])
+        listed = {name: policy["policy_adapter"].get("planners", [])
+                  for name, policy in catalog["policies"].items() if "policy_adapter" in policy}
+        self.assertEqual({name: names for name, names in listed.items() if names}, {"sonic": ["sonic_planner"]})
+        for name, policy in catalog["policies"].items():
+            # A planner is registered once under motion_planners, not inside a policy.
+            self.assertNotIn("planner", policy.get("policy_adapter", {}), name)
+            self.assertNotIn("auto_planner", policy.get("policy_adapter", {}), name)
+        self.assertNotIn("sonic_planner", catalog["policies"])
+        bound = [(b["value"], b.get("policy", "")) for b in self.bindings if b["operation"] == "planner"]
+        self.assertEqual(bound, [("sonic_planner", "sonic")])
 
     def test_locomode_commands_and_motion_actions(self):
         policies = self.config["rl_policy"]["onnx_infer"]["policies"]
@@ -150,13 +168,15 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(teleop["fast_limits"], [1.0, 0.3, 0.5])
         self.assertEqual(teleop["acceleration"], [1.0, 1.0, 2.0])
         self.assertEqual(teleop["deceleration"], [2.5, 0.5, 2.5])
-        policies = self.config["rl_policy"]["onnx_infer"]["policies"]
+        # Velocity commands go to a walking policy or, while it runs, to a registered planner.
+        receivers = dict(self.config["rl_policy"]["onnx_infer"]["policies"])
+        receivers.update(self.config["motion_planners"])
         forward_limits = {"stand": 0.7, "walk_mjlab": 1.0, "walk_rlgym": 0.8, "sonic_planner": 0.8}
         reverse_limits = {"stand": 0.4, "walk_mjlab": 0.5, "walk_rlgym": 0.6, "sonic_planner": 0.3}
         for name, forward in forward_limits.items():
-            with self.subTest(policy=name):
-                limits = policies[name]["command"]["limits"]
-                presets = policies[name]["command"].get("teleop", teleop)
+            with self.subTest(receiver=name):
+                limits = receivers[name]["command"]["limits"]
+                presets = receivers[name]["command"].get("teleop", teleop)
                 self.assertEqual(limits["min_vx"], -reverse_limits[name])
                 self.assertEqual(limits["max_vx"], forward)
                 self.assertEqual(min(presets["slow_limits"][0], limits["max_vx"]),

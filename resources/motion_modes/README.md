@@ -1,6 +1,7 @@
 # 运控模式与动作
 
-`config/g1.yaml` 的 `policy_names` 定义七个可选模式，默认常规运控（LocoMode）。
+`config/g1.yaml` 的 `policy_names` 定义六个可选模式，默认常规运控（LocoMode）。
+舞蹈运控配置为 `enabled_in: [sim]`，只在仿真后端可选；实机上操作端不列出，control 拒绝切入。
 底层模型与动作资源放在 `policy/`，不随源码提交；
 `download_models_g1.sh` 获取模型库中已发布的资源。
 
@@ -10,8 +11,7 @@
 | 常规运控（MJLab） | `walk_mjlab` | 零速站立，收到速度后行走 | 无 |
 | 常规运控（RL Gym） | `walk_rlgym` | 零速仍踏步，收到速度后行走 | 无 |
 | 舞蹈运控 | `dance_mode` | 使用 stand 站立待命 | 舞蹈、功夫、Dance 1、Packed、Jumps 1 |
-| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求 | 平稳站立、慢走、行走转身、玛卡莲娜舞、五个交互动作 |
-| SONIC 运控（规划行走） | `sonic_planner` | 站立，收到速度后由规划器生成参考 | 无 |
+| SONIC 运控 | `sonic` | 使用中性姿态静态参考站立，等待动作请求或规划器启动 | 平稳站立、慢走、行走转身、玛卡莲娜舞、五个交互动作；规划器“SONIC 规划行走” |
 | SuperMimic 运控 | `supermimic_mode` | 跟踪静态待命参考站立 | 走路、鼓掌、指向、闪身步、浪子踢球、五个交互动作 |
 
 舞蹈运控使用 `policy_actions.idle_policy: stand`。只有收到动作请求，
@@ -72,15 +72,25 @@ RT+↑ 长按 1 秒触发完整慢走。慢走采用 BONES-SEED 的 G1 起步、
 停步参考，120 Hz 重采样为 50 Hz，再按左右脚落地相位裁剪、交叠衔接。
 保留原始迈步节奏，末尾过渡到配置的 SONIC 中性站姿；每次触发只播放一次。
 这些外部动作资源需依照 BONES-SEED 许可获取，不随源码再分发。
-这是参考动作播放；自由行走速度指令仍使用 SONIC 规划行走模式。
+这是参考动作播放；按速度指令自由行走使用下述“SONIC 规划行走”规划器。
+
+SONIC 运控在 `policy_adapter.planners` 中列出规划器 `sonic_planner`（显示名“SONIC 规划行走”，
+登记在 `motion_planners`）。进入 RL 后仍先站立待命，规划器不自动加载；在 TUI 按 `N`、
+网页规划器面板点“启动”或手柄 LT+↑ 长按 1 秒后开始加载和预热，界面显示阶段和进度，
+期间机器人保持待命。进入运行后速度指令交给规划器，由它生成连续参考动作，界面显示
+单次规划耗时和每秒规划次数。停止规划器（TUI `C`、网页“停止”、手柄 RT 长按 1 秒）时先按
+零速度收步站稳，再过渡回待命参考，不退出 RL、不切换模型。规划器运行期间不能播放目录
+动作，目录动作播放期间不能启动规划器。同一次 RL 内再次启动不重新加载；离开 RL 后
+规划器被卸载。规划器加载或规划失败时回到待命并显示原因，RL 继续运行。
 
 SONIC 使用独立的 FP32 `model_encoder.onnx` 和 `model_decoder.onnx`，
 先将参考编码为 64 维 latent，再与 930 维本体历史拼接交给 decoder，每秒执行 50 次。
-静态展示与规划行走共用这两个模型；规划行走另用 `policy/sonic/planner_sonic.onnx`
+动作播放与规划行走共用这两个模型；规划器另用 `policy/sonic/planner_sonic.onnx`
 在后台生成参考，控制线程持续使用最近的有效参考。
-`robot_base.threads.motion_planner` 将规划线程及其 CPU 推理线程池配置到 CPU 0、3，
-使用 `sched: other`；planner 的 `runtime.threads: 2`
-包含调用线程。规划模型在选择该模式时加载并预热一次，进入 RL 不再加载。
+`robot_base.threads.motion_planner` 把规划线程配置到 CPU 0，使用 `sched: other`；
+规划器的 `runtime` 为 `provider: auto`、8 线程，K3 上经 SpacemiT EP 在 A100（CPU 8–15）
+推理，x86 仿真使用 CPU。规划模型在首次启动规划器时加载并预热，K3 上约 20 秒
+（`prepare_time: 20` 用于估计进度），同一次 RL 内只加载一次。
 所有策略及 SONIC encoder 复用 `g1_cpu_runtime`：CPU FP32、2 线程、关闭忙等，
 调用线程为 `rl_infer`（CPU 7），额外 worker 绑定 CPU 4。encoder 与 decoder 串行执行，
 共用这两个物理核，不占 A100。驱动、控制仍使用 CPU 1、2。
