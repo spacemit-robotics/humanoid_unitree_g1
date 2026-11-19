@@ -21,11 +21,13 @@ Unitree G1 人形机器人应用包，29 自由度（腿 12 + 腰 3 + 臂 14）�
 | 舞蹈运控 | `dance_mode` | 进入后站立待命；从动作列表触发舞蹈、功夫、Dance 1、Packed、Jumps 1 |
 | SONIC 运控 | `sonic` | 站立待命；按动作列表播放参考动作 |
 | SONIC 运控（规划行走） | `sonic_planner` | 速度指令经 kinematic planner 生成参考，再交给 SONIC tracker |
-| 感知运控（Hiking） | `hiking` | SDK torso 相机深度经 ZMQ 输入；先支持仿真，独立场景使用 16 cm 楼梯 |
+| 感知运控（Hiking） | `hiking` | SDK torso 相机深度经 ZMQ 输入；支持仿真和 RealSense 实机桥接 |
 | SuperMimic 运控 | `supermimic_mode` | 站立待命；按动作列表播放参考动作 |
 
 ## Hiking 感知仿真
 
+当前 `g1.yaml` 默认连接大脑实机深度。仿真 Hiking 先按
+[感知运控说明](docs/perceptive_control.md) 将深度发布和时钟切回仿真配置，
 完成 SDK 编译后，在 `spacemit_robot` 目录启动：
 
 ```bash

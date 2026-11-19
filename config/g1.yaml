@@ -221,10 +221,14 @@ logging:
 # ============================================================
 perception:
   depth:
-    publish_sim: true       # 启用仿真深度端点，有订阅时才渲染
-    endpoint: "tcp://127.0.0.1:5560"
-    clock: sim
+    publish_sim: false      # 实机由大脑 RealSense 桥接发布
+    endpoint: "tcp://192.168.60.1:5560"
+    clock: robot
     timeout_s: 0.2
+  clock:
+    publish: true           # 小脑 driver 的只读 IMU 时间锚点服务
+    endpoint: "tcp://0.0.0.0:5561"  # 大脑连接 tcp://192.168.60.153:5561
+    receive_delay_bound_s: 0.01  # 采样到接收的延迟预算；误差估计包含此预算
 
 simulation:
   type: "mujoco"  # 仿真类型
