@@ -17,6 +17,7 @@
     <material name="real_parkour_obstacle" rgba="0.30 0.70 0.90 1" />
     <material name="added_stairs" rgba="0.55 0.57 0.60 1" />
     <material name="descending_stairs" rgba="0.42 0.44 0.47 1" />
+    <material name="stairwell_wall" rgba="0.72 0.73 0.75 1" />
     <material name="curb_concrete" rgba="0.48 0.50 0.52 1" />
     <material name="timber_obstacle" rgba="0.43 0.25 0.12 1" />
     <material name="stepping_block" rgba="0.72 0.42 0.16 1" />
@@ -47,6 +48,13 @@
       <geom name="stair_down_3" type="box" pos="11.25 2.50 0.24" size="0.15 0.90 0.24" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
       <geom name="stair_down_4" type="box" pos="11.55 2.50 0.16" size="0.15 0.90 0.16" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
       <geom name="stair_down_5" type="box" pos="11.85 2.50 0.08" size="0.15 0.90 0.08" group="0" friction="0.9 0.005 0.0001" material="descending_stairs" density="0" />
+    </body>
+    <!-- World x=[1.4,7], starting at the first stair's front edge.
+         Clear width 1.8 m, height 2.5 m, thickness 0.15 m.
+         Opaque group-0 walls participate in both collision and depth rendering. -->
+    <body name="stairwell_walls" pos="4.2 0 1.25">
+      <geom name="stair_wall_left" type="box" pos="0 0.975 0" size="2.8 0.075 1.25" group="0" contype="1" conaffinity="1" condim="3" friction="0.9 0.005 0.0001" material="stairwell_wall" density="0" />
+      <geom name="stair_wall_right" type="box" pos="0 -0.975 0" size="2.8 0.075 1.25" group="0" contype="1" conaffinity="1" condim="3" friction="0.9 0.005 0.0001" material="stairwell_wall" density="0" />
     </body>
     <body name="variable_height_obstacles" pos="-5.8 -2.5 0">
       <geom name="obstacle_08cm" type="box" pos="5.20 -2.50 0.04" size="0.20 1.50 0.04" group="0" friction="0.9 0.005 0.0001" material="obstacle_08cm" density="0" />
