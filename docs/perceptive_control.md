@@ -31,7 +31,8 @@ output/staging/bin/run_g1.sh --sim --stairs
 原 XML 的垂直视场角为 54.5°；深度发布器只在独立渲染模型中改为 58.29°，
 不改变相机安装位姿或机器人物理模型。
 
-仿真 driver 持续发布原始 `64×36` 深度，即使当前未选择 Hiking。
+准备 Hiking 时，control 订阅原始 `64×36` 深度，仿真 driver 开始渲染；切换到其他策略且无剩余订阅时停止。
+未编入深度发布模块的 driver 仍可运行普通 MuJoCo 仿真。
 control 将底部居中的 `32×18` 区域裁出，无效深度填为 2.5 m，经过
 3×3 高斯滤波后裁剪至 `[0, 2.5] m` 并归一化；按 0.1 s 间隔取 8 帧交给 encoder。
 接收器检查相机参数、帧序号、会话、时钟域、时间戳与历史完整性；默认超时为 0.2 s。
@@ -39,7 +40,7 @@ control 将底部居中的 `32×18` 区域裁出，无效深度填为 2.5 m，�
 ## ZMQ 接口
 
 默认端点为 `perception.depth.endpoint: tcp://127.0.0.1:5560`。
-driver 为 PUB，control 为 SUB；每帧是一个无 topic 的单消息：
+driver 为 XPUB，control 为 SUB（订阅空前缀）；每帧是一个无 topic 的单消息：
 
 ```text
 4 字节小端 uint32 JSON 长度 N | N 字节 UTF-8 JSON | 64×36 个小端 float32 深度

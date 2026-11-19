@@ -221,7 +221,7 @@ logging:
 # ============================================================
 perception:
   depth:
-    publish_sim: true       # MuJoCo 持续发布，切换到 Hiking 时可直接订阅
+    publish_sim: true       # 启用仿真深度端点，有订阅时才渲染
     endpoint: "tcp://127.0.0.1:5560"
     clock: sim
     timeout_s: 0.2
