@@ -244,6 +244,21 @@ simulation:
     sim_dt: 0.001               # 仿真时间步长（秒）
     viewer: true
 
+    depth:
+      fps: 30.0               # 与实机深度采集频率对齐，RL 仍为 50 Hz
+      latency_s: 0.05          # 按仿真时间延迟发送，保留原始采集时间戳
+      degradation:           # 64×36 原始深度上的合成压力测试，非 D435i 标定参数
+        enabled: true        # false 关闭空洞/噪声；fps 和 latency_s 单独生效
+        seed: 42
+        random_hole_probability: 0.01
+        patch_count: 2
+        patch_radius_px: 1    # 每块最多 3×3 像素
+        edge_threshold_m: 0.1
+        edge_hole_probability: 0.25
+        edge_width_px: 1
+        hold_frames: 3        # 固定掩码持续 3 帧，约 0.1 s
+        noise_std_m: 0.0      # 可选有效深度高斯噪声，单位米
+
 # ============================================================
 # Behavior Manager 模块参数（FSM 状态机控制）
 # ============================================================
