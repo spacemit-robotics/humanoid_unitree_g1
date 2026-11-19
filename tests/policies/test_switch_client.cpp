@@ -14,6 +14,7 @@
 #include <string>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 #include <yaml-cpp/yaml.h>
 #include "operator_client.h"
@@ -64,6 +65,25 @@ int main(int argc, char **argv) {
         std::string error;
         if (!client.Connect(connection, &error)) throw std::runtime_error(error);
         Wait(client, 20, [](const auto &s) { return s.online && s.hmi_connected; });
+        // The driver reports its MuJoCo backend and the operator catalog then
+        // lists exactly the modes that simulation enables.
+        std::vector<std::string> expected;
+        const auto definitions = config["rl_policy"]["onnx_infer"]["policies"];
+        for (const auto &entry : config["rl_policy"]["onnx_infer"]["policy_names"]) {
+            const auto name = entry.as<std::string>();
+            const auto enabled = definitions[name]["enabled_in"];
+            bool listed = !enabled;
+            if (enabled) {
+                for (const auto &environment : enabled) listed = listed || environment.as<std::string>() == "sim";
+            }
+            if (listed) expected.push_back(name);
+        }
+        Wait(client, 5, [&](const auto &s) {
+            if (s.environment != "sim") return false;
+            std::vector<std::string> listed;
+            for (const auto &policy : client.Policies()) listed.push_back(policy.name);
+            return listed == expected;
+        });
         SimulationMonitor observer(config,
             (std::filesystem::path(argv[1]).parent_path() / "simulation_state.csv").string());
         monitor = &observer;
@@ -149,6 +169,36 @@ int main(int argc, char **argv) {
                 }
                 Wait(client, 2);
                 std::cout << "PASS playback -> " << target << std::endl;
+                continue;
+            }
+            if (target.rfind("planner:", 0) == 0) {
+                const auto name = target.substr(8);
+                const auto reply = client.StartPlanner(name);
+                Check(reply);
+                // The model loads and warms up in the background while the tracker holds standby.
+                Wait(client, 180, [&](const auto &s) {
+                    if (s.state != "RL") throw std::runtime_error("planner start left RL");
+                    if (s.request.sequence == reply.request.sequence && s.request.phase != "accepted" &&
+                        s.request.phase != "completed")
+                        throw std::runtime_error("planner request " + s.request.phase + ": " + s.request.message);
+                    if (s.planner.phase == "FAILED") throw std::runtime_error("planner failed: " + s.planner.detail);
+                    return s.planner.name == name && s.planner.phase == "RUNNING";
+                });
+                Wait(client, 3);
+                if (observer.State().base_pos[2] < 0.5) throw std::runtime_error("robot fell after planner start");
+                std::cout << "PASS planner running -> " << name << std::endl;
+                continue;
+            }
+            if (target == "planner_stop") {
+                Check(client.StopPlanner());
+                Wait(client, 30, [](const auto &s) {
+                    if (s.state != "RL") throw std::runtime_error("planner stop left RL");
+                    if (s.planner.phase == "FAILED") throw std::runtime_error("planner failed: " + s.planner.detail);
+                    return !s.planner.Engaged();
+                });
+                Wait(client, 3);
+                if (observer.State().base_pos[2] < 0.5) throw std::runtime_error("robot fell after planner stop");
+                std::cout << "PASS planner stopped -> " << client.LatestStatus().policy << std::endl;
                 continue;
             }
             if (target.rfind("wait:", 0) == 0) {

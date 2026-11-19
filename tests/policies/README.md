@@ -58,6 +58,18 @@ python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py
 python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --policies velocity:0.3,0,0,5 dance_mode idle wait:20 action:dance1 wait:10 cancel finished stand idle
 ```
 
+规划器的启动、遥控行走、停止，以及带规划器运行时切换模式：
+
+```bash
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial sonic --no-lock-memory --policies idle planner:sonic_planner velocity:0.4,0,0,6 velocity:0,0,0.5,4 planner_stop idle action:wave_chest finished
+python3 -B application/native/humanoid_unitree_g1/tests/policies/test_runtime.py --initial sonic --no-lock-memory --policies planner:sonic_planner velocity:0.3,0,0,4 stand sonic idle planner:sonic_planner planner_stop
+```
+
+`planner:<ID>` 启动当前策略登记的规划器，等待其加载、预热并进入运行，检查仍在 RL 且
+机器人未倒；`planner_stop` 停止规划器，等待参考交还后检查同样的条件。规划器运行期间的
+`velocity` 步骤把速度交给规划器。第二条命令在规划器运行时切换模式，交接前规划器先收步
+并交还参考；回到 SONIC 运控后规划器重新加载。
+
 `velocity:vx,vy,wz,秒数` 持续发送速度，检查实际位移或转角方向，然后归零并观察 3 秒。
 `MOTION` 行给出机器人实际运动；`simulation_state.csv` 记录位置、姿态和速度。
 LocoMode 在 0.2 m/s 前进指令下可能仅调整平衡姿态，0.3 m/s 可用于检查起步。
@@ -82,4 +94,5 @@ run_g1.sh --sim
 
 先按 DAMP→HOME→ZERO→RL 进入默认常规运控，再选择同组模式。
 舞蹈运控、SuperMimic 运控进入后站立待命，TUI 主页面按 A 打开动作列表，再选择开始；网页从动作列表触发。
+SONIC 运控中 TUI 按 N 打开规划器列表、Enter 启动，进入运行后按 v 进入速度页遥控，按 C 停止规划器。
 实机的机械范围、接线、IMU 安装与落地稳定性另行验收。

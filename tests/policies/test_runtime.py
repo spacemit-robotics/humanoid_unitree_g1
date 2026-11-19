@@ -55,9 +55,14 @@ def main():
             if not 0 <= seconds <= 300:
                 parser.error("Wait must be between 0 and 300 seconds")
             extra_time += seconds
+        elif step.startswith("planner:"):
+            extra_time += 183  # Background model load and warm-up, then a settle period.
+        elif step == "planner_stop":
+            extra_time += 33
         elif (step not in available and step not in ("reference", "cancel", "idle", "finished")
               and not step.startswith("action:")):
-            parser.error("Steps must be modes, reference, action:ID, cancel, idle, finished, wait:SECONDS or velocity")
+            parser.error("Steps must be modes, reference, action:ID, cancel, idle, finished, wait:SECONDS, "
+                         "velocity, planner:ID or planner_stop")
     config["robot_base"]["robot_dir"] = str(machine)
     config["driver"]["backend"] = "mujoco"
     config["simulation"]["mujoco"]["viewer"] = args.viewer

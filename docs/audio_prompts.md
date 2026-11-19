@@ -20,7 +20,7 @@ WAV 文件由使用方按许可单独提供，文案清单见 `resources/audio/p
 | 进入或切换到任一常规运控 | 常规运控 |
 | 进入或切换到舞蹈运控 | 舞蹈运控 |
 | 进入或切换到 SONIC 运控 | Sonic 运控 |
-| 进入或切换到 SONIC 规划行走 | Sonic 规划行走 |
+| SONIC 规划行走规划器进入运行、开始接收速度 | Sonic 规划行走 |
 | 进入或切换到 SuperMimic 运控 | Super Mimic 运控 |
 | 开始舞蹈／功夫 | 开始舞蹈／开始功夫 |
 | 开始 Dance 1／Packed／Jumps 1 | 开始舞蹈一／开始打包版舞蹈／开始跳跃一 |
