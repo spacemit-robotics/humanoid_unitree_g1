@@ -24,7 +24,7 @@ bash application/native/humanoid_unitree_g1/scripts/download_models_g1.sh
 output/staging/bin/run_g1.sh --sim --stairs
 ```
 
-楼梯每级高 16 cm；不加 `--stairs` 使用普通场景。仿真深度有订阅时才渲染。
+`--stairs` 的直梯每级高 16 cm；换成 `--office` 可测两次右转的办公室楼梯（每级 16.5 cm）；不指定场景时使用 YAML 中的场景。仿真深度有订阅时才渲染。
 
 ## 实机
 

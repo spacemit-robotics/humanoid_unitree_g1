@@ -5,10 +5,10 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: run_g1.sh --sim [--stairs] [--no-tui] [--terminal-only] [--listen ADDRESS] [--public-url URL]"
+    echo "Usage: run_g1.sh --sim [--stairs|--office] [--no-tui] [--terminal-only] [--listen ADDRESS] [--public-url URL]"
     echo "       run_g1.sh --real [--tui] [--listen ADDRESS] [--public-url URL]"
     echo "仿真默认启动 TUI；实机默认启动三个核心进程，网页和 App 共用 HMI。"
-    echo "--stairs 使用 16 cm 楼梯；运控模型在终端选择，启动不自动切换模型。"
+    echo "--stairs 使用 16 cm 直梯；--office 使用办公室三跑楼梯。场景不改变运控模型。"
 }
 
 MODE="${1:-}"
@@ -26,9 +26,10 @@ while (($#)); do
         --tui) TUI=yes ;;
         --no-tui) TUI=no ;;
         --terminal-only) HMI_ARGS+=("$1") ;;
-        --stairs)
-            [[ "$MODE" == --sim ]] || { echo "台阶场景仅用于仿真。" >&2; exit 1; }
-            DRIVER_ARGS+=(--stairs) ;;
+        --stairs|--office)
+            [[ "$MODE" == --sim ]] || { echo "场景选项仅用于仿真。" >&2; exit 1; }
+            [[ ${#DRIVER_ARGS[@]} == 1 ]] || { echo "只能选择一个仿真场景。" >&2; exit 1; }
+            DRIVER_ARGS+=("$1") ;;
         --listen|--public-url)
             if [[ $# -lt 2 ]]; then
                 echo "$1 缺少参数。" >&2

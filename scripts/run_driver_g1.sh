@@ -6,9 +6,14 @@ CONFIG="${G1_CONFIG:-$SDK_ROOT/application/native/humanoid_unitree_g1/config/g1.
 DRIVER="$SDK_ROOT/output/staging/bin/driver_runtime"
 BACKEND_OVERRIDE=""
 DRIVER_ARGS=()
-STAIRS=no
+SCENE=""
 for ARG in "$@"; do
-    if [[ "$ARG" == --stairs ]]; then STAIRS=yes; continue; fi
+    case "$ARG" in
+        --stairs|--office)
+            [[ -z "$SCENE" ]] || { echo "Specify only one simulation scene" >&2; exit 1; }
+            if [[ "$ARG" == --office ]]; then SCENE=scene_office.xml; else SCENE=scene_hiking_stairs.xml; fi
+            continue ;;
+    esac
     if [[ -n "$BACKEND_OVERRIDE" ]]; then
         echo "Specify only one of --sim or --real" >&2
         exit 1
@@ -17,7 +22,7 @@ for ARG in "$@"; do
         --sim) BACKEND_OVERRIDE=mujoco ;;
         --real) BACKEND_OVERRIDE=whole_body ;;
         --help|-h)
-            echo "Usage: run_driver_g1.sh [--sim|--real] [--stairs]"
+            echo "Usage: run_driver_g1.sh [--sim|--real] [--stairs|--office]"
             exit 0 ;;
         *) echo "Unknown option: $ARG" >&2; exit 1 ;;
     esac
@@ -35,9 +40,9 @@ BACKEND="${BACKEND_OVERRIDE:-$BACKEND}"
 if [[ -n "$BACKEND_OVERRIDE" ]]; then
     DRIVER_ARGS=(--backend "$BACKEND_OVERRIDE")
 fi
-if [[ "$STAIRS" == yes ]]; then
-    [[ "$BACKEND" == mujoco ]] || { echo "台阶场景仅用于仿真。" >&2; exit 1; }
-    DRIVER_ARGS+=(--scene scene_hiking_stairs.xml)
+if [[ -n "$SCENE" ]]; then
+    [[ "$BACKEND" == mujoco ]] || { echo "场景选项仅用于仿真。" >&2; exit 1; }
+    DRIVER_ARGS+=(--scene "$SCENE")
 fi
 if [[ "$BACKEND" == "whole_body" ]]; then
     # Serial access is provided by the board's device permissions; do not elevate here.
