@@ -1337,16 +1337,17 @@ rl_policy:
           encoder_sha256: "6da9f70e7f1cb3b37f02cac73fa16f6698afd427d9e44d833d345277a33b5b69"
           actor_sha256: "81b1af17d36ac1191e2654c35fb902d89c1efd96eea612c0a27d77c1edb5b61a"
         command:
+          smoothing: false
           init: [0, 0, 0]
           scale: [1, 1, 1]
           limits:
-            min_vx: -0.5
-            max_vx: 0.8
-            max_vy: 0.5
+            min_vx: 0.0
+            max_vx: 0.5
+            max_vy: 0.0
             max_wz: 1.0
           teleop:
-            slow_limits: [0.5, 0.3, 0.5]
-            fast_limits: [0.5, 0.3, 0.5]
+            slow_limits: [0.5, 0.0, 1.0]
+            fast_limits: [0.5, 0.0, 1.0]
         max_roll: 0.7
         max_pitch: 0.7
         target_limit_margin: 0.0

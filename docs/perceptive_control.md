@@ -78,7 +78,7 @@ python3 middleware/ros2/control/humanoid/scripts/realsense_depth_zmq.py \
 XML 垂直视场为 54.5°，独立深度渲染模型使用 58.29°，不改变机器人安装位姿或物理模型。
 实机桥接按 CameraInfo 重采样到同一投影。
 
-control 从 `64×36` 深度中裁出底部居中的 `32×18` 区域，无效值填为 2.5 m，
+control 从 `64×36` 深度中裁出底部居中的 `32×18` 区域，用裁剪区域内的邻近深度修补小于 0.2 m 的读数，
 经过 3×3 高斯滤波、截断到 `[0, 2.5] m` 并归一化；每隔 0.1 s 取一帧，共 8 帧交给 encoder，
 再由 actor 输出 29 轴控制。策略频率为 50 Hz；实机深度按相机实际 30 FPS 发布，不复制帧补频率。
 仿真物理步长为 `0.001 s`，加载后由 `simulation.mujoco.sim_dt` 统一覆盖 XML timestep。
