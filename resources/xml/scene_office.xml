@@ -1,0 +1,142 @@
+<mujoco model="G1 two-floor office">
+  <include file="g1_29dof_rev_1_0.xml"/>
+  <compiler angle="radian" meshdir="../meshes"/>
+  <statistic center="1 -1 2" extent="7"/>
+  <visual>
+    <map znear="0.001"/>
+    <headlight diffuse=".65 .65 .65" ambient=".30 .30 .30" specular=".1 .1 .1"/>
+    <global azimuth="130" elevation="-22"/>
+  </visual>
+  <asset>
+    <texture name="office_tiles" type="2d" builtin="checker" width="256" height="256"
+             rgb1=".64 .66 .64" rgb2=".59 .61 .60"/>
+    <material name="tiles" texture="office_tiles" texuniform="true" texrepeat="1 1"/>
+    <material name="stone" rgba=".63 .59 .53 1"/>
+    <material name="plaster" rgba=".81 .83 .80 1"/>
+    <material name="steel" rgba=".25 .31 .34 1"/>
+    <material name="wood" rgba=".62 .44 .29 1"/>
+  </asset>
+  <default>
+    <!-- The gantry uses total model mass. Fixed scenery collides but adds no mass. -->
+    <default class="office_static">
+      <geom density="0"/>
+      <default class="rail"><geom type="capsule" size=".025" material="steel"/></default>
+      <default class="post"><geom type="capsule" size=".018" material="steel"/></default>
+      <default class="stringer"><geom type="capsule" size=".055" material="steel"/></default>
+    </default>
+  </default>
+  <worldbody>
+    <light pos="2 -2 8" dir="0 0 -1" directional="true"/>
+    <frame childclass="office_static">
+      <geom name="floor" type="plane" size="0 0 .05" material="tiles" friction=".9 .005 .0001"/>
+
+      <!-- Spawn at (0,0) on floor 1, facing +X. Flights ascend +X, -Y, -X. -->
+      <body name="flight_1" pos="1.60 0 0">
+        <replicate count="13" offset=".26 0 .165">
+          <geom name="tread_1_" type="box" size=".13 .55 .12" pos=".13 0 .045" material="stone"/>
+        </replicate>
+        <replicate count="2" offset="0 1.15 0">
+          <geom class="stringer" fromto="0 -.575 -.06 3.38 -.575 2.085"/>
+          <replicate count="13" offset=".26 0 .165">
+            <geom class="post" fromto=".13 -.575 .04 .13 -.575 1.565"/>
+          </replicate>
+          <geom class="rail" fromto="0 -.575 1.4 .13 -.575 1.565"/>
+          <geom class="rail" fromto=".13 -.575 1.565 3.25 -.575 3.545"/>
+          <geom class="rail" fromto="3.25 -.575 3.545 3.38 -.575 3.545"/>
+          <geom class="rail" fromto="0 -.575 0.73 .13 -.575 0.895"/>
+          <geom class="rail" fromto=".13 -.575 0.895 3.25 -.575 2.875"/>
+          <geom class="rail" fromto="3.25 -.575 2.875 3.38 -.575 2.875"/>
+        </replicate>
+      </body>
+      <body name="turn_1" pos="5.53 0 2.145">
+        <geom name="landing_1" type="box" pos="0 0 -.10" size=".55 .55 .10" material="stone"/>
+        <geom type="box" pos="0 0 -1.1725" size=".12 .12 .9725" material="plaster"/>
+        <geom class="stringer" fromto=".51 .51 -.10 .575 .575 -.10"/>
+        <geom class="post" fromto=".575 .575 -.10 .575 .575 1.4"/>
+        <replicate count="2" offset="0 0 .67">
+          <geom class="rail" fromto="-.55 .575 .73 .575 .575 .73"/>
+          <geom class="rail" fromto=".575 .575 .73 .575 -.55 .73"/>
+        </replicate>
+      </body>
+      <body name="flight_2" pos="5.53 -.55 2.145" quat="0.7071067812 0 0 -0.7071067812">
+        <replicate count="6" offset=".26 0 .165">
+          <geom name="tread_2_" type="box" size=".13 .55 .12" pos=".13 0 .045" material="stone"/>
+        </replicate>
+        <replicate count="2" offset="0 1.15 0">
+          <geom class="stringer" fromto="0 -.575 -.06 1.56 -.575 0.93"/>
+          <replicate count="6" offset=".26 0 .165">
+            <geom class="post" fromto=".13 -.575 .04 .13 -.575 1.565"/>
+          </replicate>
+          <geom class="rail" fromto="0 -.575 1.4 .13 -.575 1.565"/>
+          <geom class="rail" fromto=".13 -.575 1.565 1.43 -.575 2.39"/>
+          <geom class="rail" fromto="1.43 -.575 2.39 1.56 -.575 2.39"/>
+          <geom class="rail" fromto="0 -.575 0.73 .13 -.575 0.895"/>
+          <geom class="rail" fromto=".13 -.575 0.895 1.43 -.575 1.72"/>
+          <geom class="rail" fromto="1.43 -.575 1.72 1.56 -.575 1.72"/>
+        </replicate>
+      </body>
+      <body name="turn_2" pos="5.53 -2.66 3.135" quat="0.7071067812 0 0 -0.7071067812">
+        <geom name="landing_2" type="box" pos="0 0 -.10" size=".55 .55 .10" material="stone"/>
+        <geom type="box" pos="0 0 -1.6675" size=".12 .12 1.4675" material="plaster"/>
+        <geom class="stringer" fromto=".51 .51 -.10 .575 .575 -.10"/>
+        <geom class="post" fromto=".575 .575 -.10 .575 .575 1.4"/>
+        <replicate count="2" offset="0 0 .67">
+          <geom class="rail" fromto="-.55 .575 .73 .575 .575 .73"/>
+          <geom class="rail" fromto=".575 .575 .73 .575 -.55 .73"/>
+        </replicate>
+      </body>
+      <body name="flight_3" pos="4.98 -2.66 3.135" quat="0 0 0 1">
+        <replicate count="9" offset=".26 0 .165">
+          <geom name="tread_3_" type="box" size=".13 .55 .12" pos=".13 0 .045" material="stone"/>
+        </replicate>
+        <replicate count="2" offset="0 1.15 0">
+          <geom class="stringer" fromto="0 -.575 -.06 2.34 -.575 1.425"/>
+          <replicate count="9" offset=".26 0 .165">
+            <geom class="post" fromto=".13 -.575 .04 .13 -.575 1.565"/>
+          </replicate>
+          <geom class="rail" fromto="0 -.575 1.4 .13 -.575 1.565"/>
+          <geom class="rail" fromto=".13 -.575 1.565 2.21 -.575 2.885"/>
+          <geom class="rail" fromto="2.21 -.575 2.885 2.34 -.575 2.885"/>
+          <geom class="rail" fromto="0 -.575 0.73 .13 -.575 0.895"/>
+          <geom class="rail" fromto=".13 -.575 0.895 2.21 -.575 2.215"/>
+          <geom class="rail" fromto="2.21 -.575 2.215 2.34 -.575 2.215"/>
+        </replicate>
+      </body>
+
+      <!-- The upper slab surrounds an open stairwell. The west edge at x=2.64
+           meets flight 3 flush; leave only its 1.10 m exit open in the guard. -->
+      <body name="upper_storey" pos="0 0 4.62">
+        <geom name="upper_west" type="box" pos="-.93 -1.50 -.10" size="3.57 4.50 .10" material="tiles"/>
+        <geom name="upper_east" type="box" pos="6.95 -1.50 -.10" size=".55 4.50 .10" material="tiles"/>
+        <geom name="upper_north" type="box" pos="4.52 1.925 -.10" size="1.88 1.075 .10" material="tiles"/>
+        <geom name="upper_south" type="box" pos="4.52 -4.75 -.10" size="1.88 1.25 .10" material="tiles"/>
+        <replicate count="2" offset="0 0 .67">
+          <geom class="rail" fromto="2.64 -2.085 .73 2.64 .85 .73"/>
+          <geom class="rail" fromto="2.64 .85 .73 6.4 .85 .73"/>
+          <geom class="rail" fromto="6.4 .85 .73 6.4 -3.5 .73"/>
+          <geom class="rail" fromto="6.4 -3.5 .73 2.64 -3.5 .73"/>
+          <geom class="rail" fromto="2.64 -3.5 .73 2.64 -3.235 .73"/>
+        </replicate>
+        <replicate count="2" offset="3.76 0 0">
+          <replicate count="4" offset="0 -1.45 0">
+            <geom class="post" fromto="2.64 .85 -.02 2.64 .85 1.4"/>
+          </replicate>
+        </replicate>
+        <replicate count="2" offset="0 -4.35 0">
+          <replicate count="2" offset="1.25 0 0">
+            <geom class="post" fromto="3.90 .85 -.02 3.90 .85 1.4"/>
+          </replicate>
+        </replicate>
+      </body>
+
+      <replicate count="2" offset="0 0 4.62">
+        <replicate count="2" offset="2.5 0 0">
+          <geom type="box" pos="-3 -4.8 .72" size=".75 .36 .035" material="wood"/>
+          <replicate count="2" offset="1.32 0 0">
+            <geom type="box" pos="-3.66 -4.8 .35" size=".035 .29 .35" material="steel"/>
+          </replicate>
+        </replicate>
+      </replicate>
+    </frame>
+  </worldbody>
+</mujoco>
