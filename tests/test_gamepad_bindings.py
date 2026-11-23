@@ -30,6 +30,10 @@ class GamepadBindingsTest(unittest.TestCase):
             ("LT+B", ""): ("policy", "walk_mjlab", 1000, "press"),
             ("LT+X", ""): ("policy", "dance_mode", 1000, "press"),
             ("LT+Y", ""): ("policy", "sonic", 1000, "press"),
+            ("LEFT", "sonic"): ("planner_preset", "previous", 0, "tap"),
+            ("RIGHT", "sonic"): ("planner_preset", "next", 0, "tap"),
+            ("UP", "sonic"): ("planner_preset", "higher", 0, "tap"),
+            ("DOWN", "sonic"): ("planner_preset", "lower", 0, "tap"),
             ("LT+UP", "sonic"): ("planner", "sonic_planner", 1000, "press"),
             ("LT+DOWN", ""): ("policy", "walk_rlgym", 1000, "press"),
             ("LT+LEFT", ""): ("policy", "supermimic_mode", 1000, "press"),
@@ -88,7 +92,12 @@ class GamepadBindingsTest(unittest.TestCase):
         sonic = catalog["policies"]["sonic"]
         normal = self.config["rl_policy"]["onnx_infer"]["policies"]["sonic"]
         self.assertEqual(sonic, normal)
-        self.assertEqual(config["motion_planners"], self.config["motion_planners"])
+        planners = [cfg["motion_planners"] for cfg in (self.config, config)]
+        for group, speeds in zip(planners, [(0.6, 0.8), (0.3, 0.5)]):
+            teleop = group["sonic_planner"]["command"].pop("teleop")
+            self.assertEqual(teleop, {"slow_limits": [speeds[0], 0.3, 2.0], "fast_limits": [speeds[1], 0.3, 2.0]})
+            self.assertEqual(group["sonic_planner"]["command"]["limits"]["max_wz"], 2.0)
+        self.assertEqual(*planners)
         self.assertEqual(catalog["policies"]["dance_mode"]["enabled_in"], ["sim"])
 
     def test_motion_planners(self):
