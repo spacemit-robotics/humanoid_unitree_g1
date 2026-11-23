@@ -121,6 +121,10 @@ operator_gamepad:
     - {buttons: [LT, X], operation: policy, value: dance_mode, hold_ms: 1000}
     - {buttons: [LT, Y], operation: policy, value: sonic, hold_ms: 1000}
     - {buttons: [LT, UP], operation: planner, value: sonic_planner, hold_ms: 1000, policy: sonic}
+    - {buttons: [LEFT], operation: planner_preset, value: previous, trigger: tap, policy: sonic}
+    - {buttons: [RIGHT], operation: planner_preset, value: next, trigger: tap, policy: sonic}
+    - {buttons: [UP], operation: planner_preset, value: higher, trigger: tap, policy: sonic}
+    - {buttons: [DOWN], operation: planner_preset, value: lower, trigger: tap, policy: sonic}
     - {buttons: [LT, DOWN], operation: policy, value: walk_rlgym, hold_ms: 1000}
     - {buttons: [RT, A], operation: action, value: dance, hold_ms: 1000, policy: dance_mode}
     - {buttons: [RT, B], operation: action, value: kungfu, hold_ms: 1000, policy: dance_mode}
@@ -280,7 +284,19 @@ motion_planners:
     type: sonic_planner
     category: realtime
     command:
-      limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 0.8}
+      limits: {min_vx: -0.3, max_vx: 0.8, max_vy: 0.5, max_wz: 2.0}
+      teleop:
+        slow_limits: [0.3, 0.3, 2.0]
+        fast_limits: [0.5, 0.3, 2.0]
+      # Keys are SONIC locomotion modes. The first entry keeps automatic speed-based selection.
+      presets:
+        - {key: "-1", display_name: 自动步态}
+        - {key: "1", display_name: 慢走}
+        - {key: "18", display_name: 潜行}
+        - {key: "20", display_name: 谨慎行走}
+        - {key: "21", display_name: 搬物行走}
+        - {key: "23", display_name: 欢快行走}
+        - {key: "4", display_name: 原地下蹲, heights_cm: [40, 20, 30, 50, 60, 70, 80]}
     # Model load plus warm-up measured on K3 (4 s + 16 s); the progress shown to the
     # operator starts from this value and uses the measured time after the first load.
     prepare_time: 20
@@ -294,7 +310,6 @@ motion_planners:
     crawling_replan_interval: 0.2
     lookahead: 0.04
     default_height: 0.788740
-    facing_horizon: 1.0
     slow_walk_max_speed: 0.8
     walk_max_speed: 2.5
     random_seed: 1234
