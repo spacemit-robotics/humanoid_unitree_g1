@@ -22,6 +22,7 @@ WAV 文件由使用方按许可单独提供，文案清单见 `resources/audio/p
 | 进入或切换到 SONIC 运控 | Sonic 运控 |
 | SONIC 规划行走规划器进入运行、开始接收速度 | Sonic 规划行走 |
 | 进入或切换到 SuperMimic 运控 | Super Mimic 运控 |
+| 进入或切换到 Hiking 运控 | 感知运控 |
 | 开始舞蹈／功夫 | 开始舞蹈／开始功夫 |
 | 开始 Dance 1／Packed／Jumps 1 | 开始舞蹈一／开始打包版舞蹈／开始跳跃一 |
 | 开始 SONIC 平稳站立动作 | 平稳站立 |

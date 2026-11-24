@@ -21,7 +21,7 @@ class AudioAssetsTest(unittest.TestCase):
 
     def test_assets(self):
         prompts = json.loads((AUDIO / "prompts.json").read_text())
-        self.assertEqual(len(prompts), 22)
+        self.assertEqual(prompts["hiking_mode.wav"], "感知运控")
         self.assertEqual(prompts["gamepad_connected.wav"], "手柄已连接")
         self.assertEqual(prompts["gamepad_disconnected.wav"], "手柄已断开")
         self.assertEqual(prompts["control_acquired.wav"], "已接管控制权")
@@ -52,7 +52,8 @@ class AudioAssetsTest(unittest.TestCase):
         machine = yaml.safe_load((PACKAGE / "config/g1.yaml").read_text())
         catalog = machine["rl_policy"]["onnx_infer"]
         self.assertEqual({key.removeprefix("policy.") for key in clips if key.startswith("policy.")},
-                         set(catalog["policy_names"]) - {"hiking"})
+                         set(catalog["policy_names"]))
+        self.assertEqual(clips["policy.hiking"], "hiking_mode.wav")
         actions = set()
         for name in catalog["policy_names"]:
             policy = catalog["policies"][name]

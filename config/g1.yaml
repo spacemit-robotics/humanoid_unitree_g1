@@ -81,6 +81,7 @@ whole_body:
 
 # Shared terminal, web, Android and gamepad operator service.
 operator_service:
+  camera_preview: {policy: hiking, address: 192.168.60.1, port: 5562}
   bind_address: "127.0.0.1"
   port: 8766
   # Phone control configuration: ../docs/phone_teleop.md.
@@ -171,6 +172,7 @@ audio_prompts:
     policy.sonic: sonic_mode.wav
     planner.sonic_planner: sonic_planner_mode.wav
     policy.supermimic_mode: supermimic_mode.wav
+    policy.hiking: hiking_mode.wav
     action.dance: dance.wav
     action.kungfu: kungfu.wav
     action.dance1: dance1.wav
