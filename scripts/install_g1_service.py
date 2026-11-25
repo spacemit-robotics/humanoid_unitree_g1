@@ -16,10 +16,85 @@ import re
 import shlex
 import shutil
 import subprocess
+import tempfile
 from urllib.parse import urlsplit
 
 UNIT_PATH = Path("/etc/systemd/system/g1.service")
 DESKTOP_UNITS = ("sddm.service", "wayvnc.service", "wayvnc-control.service", "rtkit-daemon.service")
+SERIAL_ROLES = ("waist", "arm_right", "arm_left", "leg_left", "leg_right", "imu")
+SERIAL_RULE = Path("/etc/udev/rules.d/98-g1-sdk-roles.rules")
+
+
+def serial_ports():
+    """Read USB identities from udev without opening any serial device."""
+    ports = {}
+    for tty in sorted(Path("/sys/class/tty").glob("ttyUSB*")):
+        info = subprocess.check_output(["udevadm", "info", "--query=property", "--path", str(tty)], text=True)
+        props = dict(line.split("=", 1) for line in info.splitlines() if "=" in line)
+        serial, interface = props.get("ID_SERIAL_SHORT"), props.get("ID_USB_INTERFACE_NUM")
+        if serial and interface:
+            ports.setdefault(f"{serial}/{interface}", []).append(tty.name)
+    return ports
+
+
+def export_serial_map(ports, dev=Path("/dev")):
+    """Export the installed role links, never infer limb assignments from tty order."""
+    by_tty = {tty: key for key, devices in ports.items() if len(devices) == 1 for tty in devices}
+    mapping = {}
+    for role in SERIAL_ROLES:
+        tty = (dev / "g1" / role).resolve(strict=True)
+        if tty.parent != dev or tty.name not in by_tty:
+            raise ValueError(f"Unknown or ambiguous serial identity for {role}: {tty}")
+        mapping[role] = by_tty[tty.name]
+    return mapping
+
+
+def serial_rules(mapping, ports, verify=False, dev=Path("/dev"), sys_tty=Path("/sys/class/tty")):
+    """Validate one adapter/interface per role, then render rules or verify live settings."""
+    if not isinstance(mapping, dict) or set(mapping) != set(SERIAL_ROLES):
+        raise ValueError("Serial map must contain exactly: " + ", ".join(SERIAL_ROLES))
+    rules = []
+    used = set()
+    for role in SERIAL_ROLES:
+        key = mapping[role]
+        if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[0-9a-fA-F]{2}", key):
+            raise ValueError(f"{role}: expected USB serial/interface (e.g. SERIAL/00)")
+        matches = ports.get(key, [])
+        if key in used or len(matches) != 1:
+            raise ValueError(f"{role}: missing, ambiguous or repeated USB port {key}")
+        used.add(key)
+        tty = matches[0]
+        if verify and (dev / "g1" / role).resolve(strict=True) != dev / tty:
+            raise ValueError(f"{role}: expected {dev / tty}")
+        serial, interface = key.split("/")
+        rule = (f'SUBSYSTEM=="tty", KERNEL=="ttyUSB*", ENV{{ID_SERIAL_SHORT}}=="{serial}", '
+                f'ENV{{ID_USB_INTERFACE_NUM}}=="{interface}", SYMLINK+="g1/{role}", GROUP="dialout", MODE="0660"')
+        if role != "imu":
+            latency = sys_tty / tty / "device/latency_timer"
+            if not latency.is_file() or (verify and latency.read_text().strip() != "1"):
+                raise ValueError(f"{role}: {tty} lacks the required 1 ms latency setting")
+            rule += ', ATTR{device/latency_timer}="1"'
+        rules.append(rule)
+    return "\n".join(rules) + "\n"
+
+
+def install_serial_rules(content, path=SERIAL_RULE):
+    """Preserve the former role mapping; never trigger or rebind live USB devices."""
+    if path.exists():
+        if path.read_text(encoding="utf-8") == content:
+            return
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        shutil.copy2(path, path.with_name(f"{path.name}.{stamp}.bak"))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, mode="w", encoding="utf-8", delete=False) as tmp:
+        tmp.write(content)
+    temporary = Path(tmp.name)
+    try:
+        temporary.chmod(0o644)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    subprocess.run(["udevadm", "control", "--reload-rules"], check=True)
 
 
 def installed_network(path):
@@ -79,12 +154,14 @@ def render_service(sdk_root, username, listen=None, public_url=None):
     return unit.replace("@NETWORK_ARGS@", network_arguments(listen, public_url))
 
 
-def install_service(path, unit):
+def install_service(path, unit, serial=None):
     """Back up the previous unit and enable boot without starting hardware."""
     state = subprocess.run(["systemctl", "is-active", path.name], capture_output=True,
                            text=True, check=False).stdout.strip()
     if state not in ("inactive", "failed", "unknown"):
         raise ValueError(f"Stop {path.name} before installing an update (state={state or 'unavailable'})")
+    if serial is not None:
+        install_serial_rules(serial)
     if path.exists():
         stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         shutil.copy2(path, path.with_name(f"{path.name}.{stamp}.bak"))
@@ -154,10 +231,33 @@ def main():
     parser.add_argument("--sdk-root", type=Path, default=root)
     parser.add_argument("--listen", help="robot LAN listen address; saved in the boot service")
     parser.add_argument("--public-url", help="robot LAN HTTP origin for phone access and QR")
-    parser.add_argument("--print-unit", action="store_true", help="render only; do not install or enable")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--print-unit", action="store_true", help="render only; do not install or enable")
+    mode.add_argument("--export-serial-map", action="store_true", help="print this robot's port map as JSON")
+    mode.add_argument("--check-serial-map", type=Path, metavar="JSON", help="verify live roles and latency; read-only")
+    mode.add_argument("--serial-map", type=Path, metavar="JSON", help="install this robot's USB roles and 1 ms latency")
+    mode.add_argument("--external-serial", action="store_true",
+                      help="first installation with externally managed serial device paths and latency")
     parser.add_argument("--headless", action="store_true",
                         help="K3 only: stop/disable desktop, keep USB audio, configure IRQ/core isolation")
     args = parser.parse_args()
+    serial = None
+    try:
+        if args.export_serial_map or args.check_serial_map or args.serial_map:
+            ports = serial_ports()
+            if args.export_serial_map:
+                mapping = export_serial_map(ports)
+            else:
+                mapping = json.loads((args.serial_map or args.check_serial_map).read_text(encoding="utf-8"))
+            serial = serial_rules(mapping, ports, verify=bool(args.check_serial_map))
+            if args.export_serial_map:
+                print(json.dumps(mapping, indent=2))
+                return
+            if args.check_serial_map:
+                print("Verified six serial roles and 1 ms latency on all five motor ports.")
+                return
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        parser.error(str(error))
     if not args.user:
         parser.error("--user is required")
     try:
@@ -172,11 +272,18 @@ def main():
     if os.geteuid() != 0:
         parser.error("Installation requires sudo --user root")
     try:
+        if serial is None and not UNIT_PATH.exists() and not args.external_serial:
+            ports = serial_ports()
+            try:
+                serial_rules(export_serial_map(ports), ports, verify=True)
+            except (OSError, ValueError) as error:
+                parser.error(f"First installation needs --serial-map JSON, or --external-serial for custom wiring: "
+                             f"{error}")
         if args.headless:
             # Validate the board/wiring before changing the installed service or desktop.
             subprocess.run(["/usr/bin/python3", str(args.sdk_root.resolve()
                             / "output/staging/bin/configure_g1_realtime.py")], check=True)
-        install_service(UNIT_PATH, unit)
+        install_service(UNIT_PATH, unit, serial)
         install_gamepad_rule(args.sdk_root.resolve())
         if args.headless:
             install_headless(args.sdk_root.resolve())
@@ -186,6 +293,8 @@ def main():
     print("Start: sudo --user root systemctl start g1.service")
     print("Status: systemctl status g1.service --no-pager")
     print("Gamepad rumble permissions apply when the controller next reconnects.")
+    if args.serial_map:
+        print("Serial rules apply on the next boot or adapter reconnection. Verify with --check-serial-map.")
 
 
 if __name__ == "__main__":
