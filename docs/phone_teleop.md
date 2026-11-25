@@ -27,9 +27,17 @@ Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并�
 切后台、失联、故障和状态切换会撤销旧输入，沿用配置的速度平滑。
 网络恢复后网页会自动重连，不用重新扫码；重连不会自动接管或恢复旧速度。
 
-实机进入 Hiking 后，遥控页并排显示彩色和深度画面，无需手机另连导航板。
-导航板需启用 `g1-camera-preview.service`。切走策略或将网页切到后台即停止预览；
-相机失联时显示“画面暂不可用”，不保留旧画面。
+仿真和实机实际进入 Hiking 后，网页自动播放并排的彩色和深度视频。离开策略、切后台或故障时停止，
+没有新帧时清掉旧画面并重连。左右画面各 320×180，编码目标为 30 FPS，深度显示上限 2.5 m。
+视频不传入控制 WebSocket；手机仍只连接运控板热点。
+
+- PC 仿真：安装 MediaMTX（1.15.5 已验证）、带 `libx264` 的 FFmpeg，以及系统 Python 的
+  NumPy、OpenCV、PyZMQ。按原方式启动 `run_g1.sh --sim`，图源是 MuJoCo 的 `rgbd_camera`。
+- 实机：导航板启用 `g1-camera-preview.service`，以 K3 FFmpeg 的 `h264_stcodec` 编码；
+  运控板的 PATH 中需有 `mediamtx`。运控板通过网线拉取导航板 RTSP，向手机发送 WebRTC。
+- 网页地址和配对方式不变。视频优先走 UDP 8189；浏览器限制 UDP 时可走 TCP 8189。
+  两种方式都直连运控板（仿真时直连 PC）。MediaMTX 可放在 PATH 或 SDK 的 `output/staging/bin/`。
+  协商端口 8889 只监听本机。网关未启动时检查本轮启动目录下的 `camera.log`。
 
 先从模式列表选择“舞蹈运控”，机器人保持站立；再从动作列表点击具体舞蹈。
 动作结束或取消后仍停留在舞蹈运控、等待下次触发。SONIC 运控从动作列表触发

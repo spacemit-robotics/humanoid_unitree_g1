@@ -127,10 +127,14 @@ NAMES=()
 TUI_PID=""
 AUDIO_PID=""
 GAMEPAD_PID=""
+CAMERA_PID=""
 FAILED_NAME=""
 FAILED_STATUS=0
 signal_children() {
     local PID
+    if [[ -n "$CAMERA_PID" ]]; then
+        kill -s "$1" -- "-$CAMERA_PID" 2>/dev/null || true
+    fi
     if [[ -n "$TUI_PID" ]]; then
         kill -s "$1" "$TUI_PID" 2>/dev/null || true
     fi
@@ -243,6 +247,16 @@ while :; do
 done
 exec 8>&-
 echo "三个核心进程已就绪；启动保持 POWER_OFF，不会自动上电。"
+if [[ " ${HMI_ARGS[*]} " != *" --terminal-only "* && -x "$BIN/run_camera_gateway.py" ]]; then
+    if [[ -x "$BIN/mediamtx" ]] || command -v mediamtx >/dev/null; then
+        PATH="$BIN:$PATH" setsid /usr/bin/python3 "$BIN/run_camera_gateway.py" "$CONFIG" "${MODE#--}" 7>&- 9>&- </dev/null > >(
+            python3 "$LOG_TOOL" sink --config "$CONFIG" --file "$LOG_DIR/camera.log" 7>&- 9>&-
+        ) 2>&1 &
+        CAMERA_PID=$!
+    else
+        echo "未安装 MediaMTX，网页图传不可用；运控不受影响。" >&2
+    fi
+fi
 # Optional observer: its failure must not stop any core process.
 if [[ "$MODE" == --real && -x "$BIN/operator_audio" ]]; then
     setsid "$BIN/operator_audio" "$CONFIG" --connection "$CONNECTION" \

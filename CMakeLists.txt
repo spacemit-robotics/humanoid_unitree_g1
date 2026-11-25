@@ -5,6 +5,7 @@ install(PROGRAMS
     scripts/configure_g1_realtime.py
     scripts/install_g1_service.py
     scripts/run_g1.sh
+    scripts/run_camera_gateway.py
     scripts/run_hmi_tui_g1.sh
     scripts/run_driver_g1.sh
     scripts/run_control_g1.sh
