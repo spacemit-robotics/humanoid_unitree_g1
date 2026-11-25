@@ -81,6 +81,7 @@ whole_body:
 
 # Shared terminal, web, Android and gamepad operator service.
 operator_service:
+  camera_preview: {policy: hiking, port: 8889, real_rtsp: "rtsp://192.168.60.1:18554/hiking"}
   bind_address: "127.0.0.1"
   port: 8766
   # Phone control configuration: ../docs/phone_teleop.md.
@@ -171,6 +172,7 @@ audio_prompts:
     policy.sonic: sonic_mode.wav
     planner.sonic_planner: sonic_planner_mode.wav
     policy.supermimic_mode: supermimic_mode.wav
+    policy.hiking: hiking_mode.wav
     action.dance: dance.wav
     action.kungfu: kungfu.wav
     action.dance1: dance1.wav
@@ -238,6 +240,8 @@ simulation:
   type: "mujoco"  # 仿真类型
 
   mujoco:  # MuJoCo 仿真专属参数
+    depth_endpoint: "tcp://127.0.0.1:5560"
+    preview_endpoint: "tcp://127.0.0.1:5563"
     # 初始化参数
     init_height: 0.85       # 初始高度（机器人从此高度落下）
     assist_height: 0.8     # 悬挂保护目标高度
