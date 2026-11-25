@@ -163,7 +163,7 @@ run_g1.sh --real --tui
 - [启动器与开机服务](tests/launcher/README.md)：安装参数、服务状态与调度配置。
 - [测试说明](tests/README.md)：离线映射、启动器、遥控和 MuJoCo 回归入口。
 
-`install_g1_service.py` 可安装开机服务，使用前查看 `--help`；安装需要系统管理权限。服务异常重启后仍保持 POWER_OFF，确认故障和设备状态后再接管。网页监听地址和入口由部署参数指定，仓库不保存配对凭据。
+`install_g1_service.py` 可安装开机服务；新板串口接线及迁移步骤见[更换运控板](docs/hardware.md#更换运控板)。服务异常重启后仍保持 POWER_OFF，确认故障和设备状态后再接管。网页监听地址和入口由部署参数指定，仓库不保存配对凭据。
 
 日志目录由 `logging.directory` 指定，`logging.storage` 限制占用，`logging.blackbox` 配置故障前后片段。日志、故障包和测试输出不纳入源码仓库。
 

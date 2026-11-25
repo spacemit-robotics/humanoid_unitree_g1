@@ -7,16 +7,30 @@
 ## 总线与设备
 
 串口使用 6 Mbaud，五路分别为腰部、左右臂、左右腿，共 29 轴。
-设备路径默认以 `/dev/g1/` 下的角色名表示；部署前必须改为实际、稳定的设备路径，
-或由安装环境创建相应 udev 链接。不要依据 `/dev/ttyUSB*` 的出现顺序分配肢体。
+默认使用 `/dev/g1/{waist,arm_right,arm_left,leg_left,leg_right,imu}`。设备名按 USB 转换器
+序列号和接口号确定，与 `ttyUSB*` 的枚举顺序无关。五路电机串口使用 1 ms 延迟，IMU 不设置该参数。
 
-先运行 `ls -l /dev/serial/by-id/`，按转换器序列号与接口号确认五路总线及 IMU，
-将 `g1_hardware.yaml` 中各 `device` 替换为对应的完整 by-id 路径。
-同一多口转换器的不同接口也必须分别核对，不能按路径列表顺序分配左右腿。
-修改接线或更换转换器后，在 POWER_OFF 下重新检查反馈归属。
+### 更换运控板
 
-可选的自定义 udev 规则应匹配实际序列号及接口号，再创建 `/dev/g1/` 角色链接；
-设备标识和本机规则由部署环境保存，不作为通用机型配置分发。
+1. 在原板 SDK 根目录，用本版本安装脚本导出已核对的接线（只读，无需 sudo）：
+   `python3 application/native/humanoid_unitree_g1/scripts/install_g1_service.py --export-serial-map > g1-ports.json`。
+   保存这份文件，随机器人迁移，不提交到公共仓库。
+2. 新板按 README 编译 SDK、准备策略和本机标定，把同一套转换器按原接线接好。将 JSON 复制到新板 SDK 根目录。
+   在运控服务停止时运行：
+   `sudo python3 output/staging/bin/install_g1_service.py --user "$USER" --serial-map g1-ports.json`。
+   网页入口和可选的无桌面配置仍使用原安装参数。此命令启用下次开机自启，不启动电机、不重绑 USB。
+3. 下次开机后（或服务停止时重新插入转换器），在 POWER_OFF 下运行
+   `python3 output/staging/bin/install_g1_service.py --check-serial-map g1-ports.json`。
+   它逐项核对六个设备名和五路电机的延迟，不打开串口。首次使能前还需核实实物接线和反馈归属。
+
+没有旧板或更换过转换器时，按实物接线填写 JSON：六个键就是上面的角色名，值为
+`"转换器序列号/两位接口号"`（例如 `"ADAPTER_A/00"`）。用 `ls -l /dev/serial/by-id/` 找到设备，
+用 `udevadm info -q property -n /dev/ttyUSB0` 查看该口的 `ID_SERIAL_SHORT` 和 `ID_USB_INTERFACE_NUM`。
+不要按数字编号猜测肢体归属。若连电机到多口转换器的接线也有变化，必须重新核对映射。
+
+安装器生成 `/etc/udev/rules.d/98-g1-sdk-roles.rules`，重新插入时仍会按同一映射命名并设置延迟。
+新板不需要安装旧的 `g1-serial-order.service`。自行管理串口的部署也可以在硬件 YAML 中指定稳定路径，
+首次安装使用 `--external-serial`，由部署方负责权限及延迟设置。
 
 ## 腰踝标定
 

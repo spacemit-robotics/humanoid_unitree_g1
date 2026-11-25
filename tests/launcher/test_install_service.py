@@ -44,7 +44,7 @@ class ServiceTest(unittest.TestCase):
         self.assertIn(" --real --no-tui --listen 0.0.0.0 --public-url http://192.0.2.10:8766\n", unit)
         self.assertIn("LimitRTPRIO=70\n", unit)
         self.assertIn("LimitMEMLOCK=infinity\n", unit)
-        self.assertIn("SupplementaryGroups=audio input\n", unit)
+        self.assertIn("SupplementaryGroups=audio input dialout\n", unit)
         self.assertIn("ExecStopPost=-", unit)
         self.assertIn(" --service-failure\n", unit)
         self.assertIn("Restart=on-failure\n", unit)
@@ -65,6 +65,33 @@ class ServiceTest(unittest.TestCase):
                                    ("0.0.0.0", "http://user:password@robot:8766")):
             with self.subTest(listen=listen, public_url=public_url), self.assertRaises(ValueError):
                 INSTALLER.network_arguments(listen, public_url)
+
+    def test_serial_mapping_survives_tty_renumbering(self):
+        dev, sys_tty = self.root / "dev", self.root / "tty"
+        (dev / "g1").mkdir(parents=True)
+        ports = {}
+        for index, role in enumerate(INSTALLER.SERIAL_ROLES):
+            tty = f"ttyUSB{9 - index}"
+            key = ["WAIST/00", "QUAD/00", "QUAD/01", "QUAD/02", "QUAD/03", "IMU/00"][index]
+            ports[key] = [tty]
+            (dev / tty).touch()
+            (dev / "g1" / role).symlink_to(dev / tty)
+            if role != "imu":
+                device = sys_tty / tty / "device"
+                device.mkdir(parents=True)
+                (device / "latency_timer").write_text("1")
+        mapping = INSTALLER.export_serial_map(ports, dev)
+        rules = INSTALLER.serial_rules(mapping, ports, True, dev, sys_tty)
+        self.assertEqual(rules.count('ATTR{device/latency_timer}="1"'), 5)
+        self.assertIn('ENV{ID_USB_INTERFACE_NUM}=="02", SYMLINK+="g1/leg_left"', rules)
+        self.assertNotIn("ttyUSB9", rules)
+        with self.assertRaises(ValueError):
+            INSTALLER.serial_rules(dict(mapping, leg_right=mapping["leg_left"]), ports, sys_tty=sys_tty)
+        with self.assertRaises(ValueError):
+            INSTALLER.serial_rules(mapping, dict(ports, **{"QUAD/01": ["ttyUSB7", "ttyUSB10"]}), sys_tty=sys_tty)
+        (sys_tty / "ttyUSB9/device/latency_timer").write_text("16")
+        with self.assertRaises(ValueError):
+            INSTALLER.serial_rules(mapping, ports, True, dev, sys_tty)
 
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd-analyze not installed")
     def test_systemd_accepts_rendered_unit(self):

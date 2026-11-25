@@ -8,7 +8,7 @@ StartLimitIntervalSec=0
 Type=simple
 User=@USER@
 Group=@GROUP@
-SupplementaryGroups=audio input
+SupplementaryGroups=audio input dialout
 WorkingDirectory=@SDK_ROOT@
 Environment="SDK_ROOT=@SDK_ROOT@"
 Environment="HOME=@HOME@"
