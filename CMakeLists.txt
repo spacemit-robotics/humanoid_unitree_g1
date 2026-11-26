@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(humanoid_unitree_g1)
 
+option(G1_INSTALL_MEDIAMTX "Install the gateway for the optional G1 web camera preview" ON)
+if(G1_INSTALL_MEDIAMTX)
+    include(cmake/InstallMediaMTX.cmake)
+endif()
+
 install(PROGRAMS
     scripts/configure_g1_realtime.py
     scripts/install_g1_service.py
