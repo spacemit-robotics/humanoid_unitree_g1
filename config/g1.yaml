@@ -384,7 +384,7 @@ sonic_actions:
   default_action: standing
   transition_duration: 0.5
   action_names: [standing, slow_walk, walk, macarena,
-                 handshake, wave_high, wave_chest, blow_kiss, clap_short,
+                 handshake, wave_high, wave_chest, blow_kiss, clap_short, greeting_sequence,
                  rhythm_1, rhythm_2, rhythm_3, rhythm_4,
                  twist, warm_up, street, charleston_2, tai_chi, gangnam_style,
                  sakura_sway, disco_finger_hips, retro_twist_step]
@@ -414,6 +414,7 @@ sonic_actions:
     wave_chest: {display_name: 胸前挥手, file: policy/sonic/wave_chest, motion_fps: 50, loop: false}
     blow_kiss: {display_name: 飞吻, file: policy/sonic/blow_kiss, motion_fps: 50, loop: false}
     clap_short: {display_name: 鼓掌（短）, file: policy/sonic/clap_short, motion_fps: 50, loop: false}
+    greeting_sequence: {display_name: 挥手鼓掌飞吻, file: policy/sonic/greeting_sequence, motion_fps: 50, loop: false}
     rhythm_1: {display_name: 律动 1, file: policy/sonic/rhythm_1, motion_fps: 50, loop: false}
     rhythm_2: {display_name: 律动 2, file: policy/sonic/rhythm_2, motion_fps: 50, loop: false}
     rhythm_3: {display_name: 律动 3, file: policy/sonic/rhythm_3, motion_fps: 50, loop: false}
@@ -434,7 +435,7 @@ supermimic_actions:
   transition_duration: 1.0
   motion_fps: 50
   action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance, sm_langzi_tiqiu,
-                 sm_handshake, sm_wave_high, sm_wave_chest, sm_blow_kiss, sm_clap_short,
+                 sm_handshake, sm_wave_high, sm_wave_chest, sm_blow_kiss, sm_clap_short, sm_greeting_sequence,
                  sm_rhythm_1, sm_rhythm_2, sm_rhythm_3, sm_rhythm_4,
                  sm_twist, sm_warm_up, sm_street, sm_charleston_2, sm_tai_chi, sm_gangnam_style,
                  sm_sakura_sway, sm_disco_finger_hips, sm_retro_twist_step]
@@ -450,6 +451,7 @@ supermimic_actions:
     sm_wave_chest: {display_name: 胸前挥手, file: policy/supermimic/references/wave_chest.npz}
     sm_blow_kiss: {display_name: 飞吻, file: policy/supermimic/references/blow_kiss.npz}
     sm_clap_short: {display_name: 鼓掌（短）, file: policy/supermimic/references/clap_short.npz}
+    sm_greeting_sequence: {display_name: 挥手鼓掌飞吻, file: policy/supermimic/references/greeting_sequence.npz}
     sm_rhythm_1: {display_name: 律动 1, file: policy/supermimic/references/rhythm_1.npz}
     sm_rhythm_2: {display_name: 律动 2, file: policy/supermimic/references/rhythm_2.npz}
     sm_rhythm_3: {display_name: 律动 3, file: policy/supermimic/references/rhythm_3.npz}
