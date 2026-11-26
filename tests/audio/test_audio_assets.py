@@ -52,8 +52,15 @@ class AudioAssetsTest(unittest.TestCase):
                          set(catalog["policy_names"]))
         self.assertEqual(clips["policy.hiking"], "hiking_mode.wav")
         rgbd = yaml.safe_load((PACKAGE / "config/g1_rgbd.yaml").read_text())
-        for events in (clips, rgbd["audio_prompts"]["clips"]):
-            self.assertFalse(any(key.startswith("action.") for key in events))
+        expected = {"action.sm_clap": "greeting_clap.wav"}
+        for action in ("handshake", "wave_high", "wave_chest", "blow_kiss", "clap_short"):
+            filename = f"greeting_{'clap' if action == 'clap_short' else action}.wav"
+            for prefix, group in (("", "sonic_actions"), ("sm_", "supermimic_actions")):
+                self.assertIn(prefix + action, machine[group]["action_names"])
+                expected["action." + prefix + action] = filename
+        self.assertIn("sm_clap", machine["supermimic_actions"]["action_names"])
+        self.assertEqual({key: val for key, val in clips.items() if key.startswith("action.")}, expected)
+        self.assertFalse(any(key.startswith("action.") for key in rgbd["audio_prompts"]["clips"]))
         self.assertNotIn("policy.protomotions", clips)
         self.assertEqual(clips["policy.stand"], "locomotion_mode.wav")
         self.assertEqual({key.removeprefix("planner.") for key in clips if key.startswith("planner.")},

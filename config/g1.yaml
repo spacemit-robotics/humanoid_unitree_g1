@@ -173,6 +173,17 @@ audio_prompts:
     planner.sonic_planner: sonic_planner_mode.wav
     policy.supermimic_mode: supermimic_mode.wav
     policy.hiking: hiking_mode.wav
+    action.handshake: greeting_handshake.wav
+    action.sm_handshake: greeting_handshake.wav
+    action.wave_high: greeting_wave_high.wav
+    action.sm_wave_high: greeting_wave_high.wav
+    action.wave_chest: greeting_wave_chest.wav
+    action.sm_wave_chest: greeting_wave_chest.wav
+    action.blow_kiss: greeting_blow_kiss.wav
+    action.sm_blow_kiss: greeting_blow_kiss.wav
+    action.clap_short: greeting_clap.wav
+    action.sm_clap_short: greeting_clap.wav
+    action.sm_clap: greeting_clap.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
     fault: fault.wav
