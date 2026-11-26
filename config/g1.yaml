@@ -419,11 +419,11 @@ sonic_actions:
     rhythm_3: {display_name: 律动 3, file: policy/sonic/rhythm_3, motion_fps: 50, loop: false}
     rhythm_4: {display_name: 律动 4, file: policy/sonic/rhythm_4, motion_fps: 50, loop: false}
     twist: {display_name: 扭扭舞, file: policy/sonic/twist, motion_fps: 50, loop: false}
-    warm_up: {display_name: 热身, file: policy/sonic/warm_up, motion_fps: 50, loop: false}
+    warm_up: {display_name: 热身, file: policy/sonic/warm_up, motion_fps: 50, loop: false, enabled_in: [sim]}
     street: {display_name: 街舞, file: policy/sonic/street, motion_fps: 50, loop: false}
     charleston_2: {display_name: 查尔斯顿 2, file: policy/sonic/charleston_2, motion_fps: 50, loop: false}
-    tai_chi: {display_name: 太极, file: policy/sonic/tai_chi, motion_fps: 50, loop: false}
-    gangnam_style: {display_name: 江南 Style, file: policy/sonic/gangnam_style, motion_fps: 50, loop: false}
+    tai_chi: {display_name: 太极, file: policy/sonic/tai_chi, motion_fps: 50, loop: false, enabled_in: [sim]}
+    gangnam_style: {display_name: 江南 Style, file: policy/sonic/gangnam_style, motion_fps: 50, loop: false, enabled_in: [sim]}
     sakura_sway: {display_name: 樱花胜利摇摆, file: policy/sonic/sakura_sway, motion_fps: 50, loop: false}
     disco_finger_hips: {display_name: 迪斯科摇摆, file: policy/sonic/disco_finger_hips, motion_fps: 50, loop: false}
     retro_twist_step: {display_name: 复古扭步, file: policy/sonic/retro_twist_step, motion_fps: 50, loop: false}
@@ -455,11 +455,11 @@ supermimic_actions:
     sm_rhythm_3: {display_name: 律动 3, file: policy/supermimic/references/rhythm_3.npz}
     sm_rhythm_4: {display_name: 律动 4, file: policy/supermimic/references/rhythm_4.npz}
     sm_twist: {display_name: 扭扭舞, file: policy/supermimic/references/twist.npz}
-    sm_warm_up: {display_name: 热身, file: policy/supermimic/references/warm_up.npz}
+    sm_warm_up: {display_name: 热身, file: policy/supermimic/references/warm_up.npz, enabled_in: [sim]}
     sm_street: {display_name: 街舞, file: policy/supermimic/references/street.npz}
     sm_charleston_2: {display_name: 查尔斯顿 2, file: policy/supermimic/references/charleston_2.npz}
-    sm_tai_chi: {display_name: 太极, file: policy/supermimic/references/tai_chi.npz}
-    sm_gangnam_style: {display_name: 江南 Style, file: policy/supermimic/references/gangnam_style.npz}
+    sm_tai_chi: {display_name: 太极, file: policy/supermimic/references/tai_chi.npz, enabled_in: [sim]}
+    sm_gangnam_style: {display_name: 江南 Style, file: policy/supermimic/references/gangnam_style.npz, enabled_in: [sim]}
     sm_sakura_sway: {display_name: 樱花胜利摇摆, file: policy/supermimic/references/sakura_sway.npz}
     sm_disco_finger_hips: {display_name: 迪斯科摇摆, file: policy/supermimic/references/disco_finger_hips.npz}
     sm_retro_twist_step: {display_name: 复古扭步, file: policy/supermimic/references/retro_twist_step.npz}
