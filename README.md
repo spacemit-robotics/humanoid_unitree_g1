@@ -149,7 +149,7 @@ run_g1.sh --real --tui
 | `resources/xml/`、`resources/urdf/`、`resources/meshes/` | 仿真与结构资源 |
 | `resources/kinematics/` | 腰踝耦合标定数据接口，数据单独提供 |
 | `policy/` | 模型与参考动作，按 YAML 路径放置 |
-| `resources/arm_interactions/`、`resources/audio/` | 可选交互动作与音频资源 |
+| `resources/arm_interactions/`、`resources/audio/` | 可选交互动作与内置提示音 |
 
 按功能查阅：
 

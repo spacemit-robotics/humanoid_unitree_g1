@@ -160,12 +160,6 @@ audio_prompts:
     policy.dance_mode: dance_mode.wav
     policy.sonic: sonic_mode.wav
     planner.sonic_planner: sonic_planner_mode.wav
-    action.dance: dance.wav
-    action.kungfu: kungfu.wav
-    action.dance1: dance1.wav
-    action.packed: packed.wav
-    action.jumps1: jumps1.wav
-    action.standing: standing.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
     fault: fault.wav

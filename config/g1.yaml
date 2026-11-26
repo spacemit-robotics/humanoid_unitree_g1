@@ -173,12 +173,6 @@ audio_prompts:
     planner.sonic_planner: sonic_planner_mode.wav
     policy.supermimic_mode: supermimic_mode.wav
     policy.hiking: hiking_mode.wav
-    action.dance: dance.wav
-    action.kungfu: kungfu.wav
-    action.dance1: dance1.wav
-    action.packed: packed.wav
-    action.jumps1: jumps1.wav
-    action.standing: standing.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
     fault: fault.wav
