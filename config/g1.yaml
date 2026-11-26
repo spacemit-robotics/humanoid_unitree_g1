@@ -379,7 +379,8 @@ sonic_actions:
   default_action: standing
   transition_duration: 0.5
   action_names: [standing, slow_walk, walk, macarena,
-                 handshake, wave_high, wave_chest, blow_kiss, clap_short]
+                 handshake, wave_high, wave_chest, blow_kiss, clap_short,
+                 rhythm_1, rhythm_2, rhythm_3, rhythm_4]
   actions:
     standing:
       display_name: 平稳站立
@@ -406,6 +407,10 @@ sonic_actions:
     wave_chest: {display_name: 胸前挥手, file: policy/sonic/wave_chest, motion_fps: 50, loop: false}
     blow_kiss: {display_name: 飞吻, file: policy/sonic/blow_kiss, motion_fps: 50, loop: false}
     clap_short: {display_name: 鼓掌（短）, file: policy/sonic/clap_short, motion_fps: 50, loop: false}
+    rhythm_1: {display_name: 律动 1, file: policy/sonic/rhythm_1, motion_fps: 50, loop: false}
+    rhythm_2: {display_name: 律动 2, file: policy/sonic/rhythm_2, motion_fps: 50, loop: false}
+    rhythm_3: {display_name: 律动 3, file: policy/sonic/rhythm_3, motion_fps: 50, loop: false}
+    rhythm_4: {display_name: 律动 4, file: policy/sonic/rhythm_4, motion_fps: 50, loop: false}
 
 # SuperMimic 动作目录：supermimic_mode 进入后保持 sm_standby，动作首尾回到同一待命姿态。
 supermimic_actions:
@@ -413,7 +418,8 @@ supermimic_actions:
   transition_duration: 1.0
   motion_fps: 50
   action_names: [sm_standby, sm_walk, sm_clap, sm_point, sm_dance, sm_langzi_tiqiu,
-                 sm_handshake, sm_wave_high, sm_wave_chest, sm_blow_kiss, sm_clap_short]
+                 sm_handshake, sm_wave_high, sm_wave_chest, sm_blow_kiss, sm_clap_short,
+                 sm_rhythm_1, sm_rhythm_2, sm_rhythm_3, sm_rhythm_4]
   actions:
     sm_standby: {display_name: 待命, file: policy/supermimic/references/standby.npz}
     sm_walk: {display_name: 走路, file: policy/supermimic/references/walk.npz}
@@ -426,6 +432,10 @@ supermimic_actions:
     sm_wave_chest: {display_name: 胸前挥手, file: policy/supermimic/references/wave_chest.npz}
     sm_blow_kiss: {display_name: 飞吻, file: policy/supermimic/references/blow_kiss.npz}
     sm_clap_short: {display_name: 鼓掌（短）, file: policy/supermimic/references/clap_short.npz}
+    sm_rhythm_1: {display_name: 律动 1, file: policy/supermimic/references/rhythm_1.npz}
+    sm_rhythm_2: {display_name: 律动 2, file: policy/supermimic/references/rhythm_2.npz}
+    sm_rhythm_3: {display_name: 律动 3, file: policy/supermimic/references/rhythm_3.npz}
+    sm_rhythm_4: {display_name: 律动 4, file: policy/supermimic/references/rhythm_4.npz}
 
 rl_policy:
   type: "onnx_infer"
