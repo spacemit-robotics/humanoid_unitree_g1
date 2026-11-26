@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 SpacemiT (Hangzhou) Technology Co. Ltd.
 # SPDX-License-Identifier: Apache-2.0
-"""Check audio event routing and optional PCM assets without playback."""
+"""Check audio event routing and bundled PCM assets without playback."""
 
 import array
 import json
@@ -26,11 +26,8 @@ class AudioAssetsTest(unittest.TestCase):
         self.assertEqual(prompts["gamepad_disconnected.wav"], "手柄已断开")
         self.assertEqual(prompts["control_acquired.wav"], "已接管控制权")
         self.assertEqual(prompts["control_released.wav"], "控制权已释放")
-        paths = [AUDIO / filename for filename in prompts if (AUDIO / filename).is_file()]
-        if not paths:
-            self.skipTest("Optional audio asset package is not installed")
-        for path in paths:
-            filename = path.name
+        for filename in prompts:
+            path = AUDIO / filename
             with self.subTest(filename=filename):
                 with wave.open(str(path), "rb") as wav:
                     self.assertEqual((wav.getframerate(), wav.getnchannels(), wav.getsampwidth()),
@@ -54,14 +51,9 @@ class AudioAssetsTest(unittest.TestCase):
         self.assertEqual({key.removeprefix("policy.") for key in clips if key.startswith("policy.")},
                          set(catalog["policy_names"]))
         self.assertEqual(clips["policy.hiking"], "hiking_mode.wav")
-        actions = set()
-        for name in catalog["policy_names"]:
-            policy = catalog["policies"][name]
-            actions.update(policy.get("policy_actions", {}).get("action_names", []))
-            if "catalog" in policy.get("policy_adapter", {}):
-                actions.update(machine[policy["policy_adapter"]["catalog"]]["action_names"])
-        announced = {key.removeprefix("action.") for key in clips if key.startswith("action.")}
-        self.assertLessEqual(announced, actions)
+        rgbd = yaml.safe_load((PACKAGE / "config/g1_rgbd.yaml").read_text())
+        for events in (clips, rgbd["audio_prompts"]["clips"]):
+            self.assertFalse(any(key.startswith("action.") for key in events))
         self.assertNotIn("policy.protomotions", clips)
         self.assertEqual(clips["policy.stand"], "locomotion_mode.wav")
         self.assertEqual({key.removeprefix("planner.") for key in clips if key.startswith("planner.")},

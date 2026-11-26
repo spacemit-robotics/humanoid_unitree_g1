@@ -31,8 +31,7 @@ policy/
 # Python test bytecode
 __pycache__/
 
-# Runtime media and external keyframes are distributed separately.
-/resources/audio/*.wav
+# Local audio generation metadata and external keyframes.
 /resources/audio/generation.json
 /resources/audio/sources.json
 /resources/arm_interactions/*.npz
