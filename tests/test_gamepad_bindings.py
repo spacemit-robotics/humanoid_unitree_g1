@@ -81,7 +81,10 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(self.config["sonic_actions"]["action_names"],
                          ["standing", "slow_walk", "walk", "macarena",
                           "handshake", "wave_high", "wave_chest", "blow_kiss", "clap_short",
-                          "rhythm_1", "rhythm_2", "rhythm_3", "rhythm_4"])
+                          "rhythm_1", "rhythm_2", "rhythm_3", "rhythm_4",
+                          "twist", "warm_up", "street", "charleston_2",
+                          "tai_chi", "gangnam_style", "sakura_sway",
+                          "disco_finger_hips", "retro_twist_step"])
 
     def test_rgbd_planner(self):
         package = Path(__file__).resolve().parents[1]
@@ -160,7 +163,10 @@ class GamepadBindingsTest(unittest.TestCase):
         self.assertEqual(catalog["action_names"],
                          ["sm_standby", "sm_walk", "sm_clap", "sm_point", "sm_dance", "sm_langzi_tiqiu",
                           "sm_handshake", "sm_wave_high", "sm_wave_chest", "sm_blow_kiss", "sm_clap_short",
-                          "sm_rhythm_1", "sm_rhythm_2", "sm_rhythm_3", "sm_rhythm_4"])
+                          "sm_rhythm_1", "sm_rhythm_2", "sm_rhythm_3", "sm_rhythm_4",
+                          "sm_twist", "sm_warm_up", "sm_street", "sm_charleston_2",
+                          "sm_tai_chi", "sm_gangnam_style", "sm_sakura_sway",
+                          "sm_disco_finger_hips", "sm_retro_twist_step"])
         self.assertEqual(list(catalog["actions"]), catalog["action_names"])
         for name, action in catalog["actions"].items():
             self.assertEqual(action["file"], f"policy/supermimic/references/{name.removeprefix('sm_')}.npz")
