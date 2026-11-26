@@ -31,12 +31,15 @@ Web 与 Android App 共用 `humanoid_common` 的方向按键网页。接管并�
 没有新帧时清掉旧画面并重连。左右画面各 320×180，编码目标为 30 FPS，深度显示上限 2.5 m。
 视频不传入控制 WebSocket；手机仍只连接运控板热点。
 
-- PC 仿真：安装 MediaMTX（1.15.5 已验证）、带 `libx264` 的 FFmpeg，以及系统 Python 的
+- PC 仿真：安装带 `libx264` 的 FFmpeg，以及系统 Python 的
   NumPy、OpenCV、PyZMQ。按原方式启动 `run_g1.sh --sim`，图源是 MuJoCo 的 `rgbd_camera`。
 - 实机：导航板启用 `g1-camera-preview.service`，以 K3 FFmpeg 的 `h264_stcodec` 编码；
-  运控板的 PATH 中需有 `mediamtx`。运控板通过网线拉取导航板 RTSP，向手机发送 WebRTC。
+  运控板通过网线拉取导航板 RTSP，向手机发送 WebRTC。
 - 网页地址和配对方式不变。视频优先走 UDP 8189；浏览器限制 UDP 时可走 TCP 8189。
-  两种方式都直连运控板（仿真时直连 PC）。MediaMTX 可放在 PATH 或 SDK 的 `output/staging/bin/`。
+  两种方式都直连运控板（仿真时直连 PC）。构建 G1 默认按目标架构获取 MediaMTX 1.15.5，
+  校验后安装到 `output/staging/bin/`。缓存位于 `~/.cache/thirdparty/mediamtx/`，
+  可用 `SROBOTIS_THIRDPARTY_CACHE` 指定缓存根目录。无缓存且下载失败时仅跳过网关；
+  网络恢复后重新构建 G1 即可。运行时也支持 PATH 中已有的 `mediamtx`。
   协商端口 8889 只监听本机。网关未启动时检查本轮启动目录下的 `camera.log`。
 
 先从模式列表选择“舞蹈运控”，机器人保持站立；再从动作列表点击具体舞蹈。
