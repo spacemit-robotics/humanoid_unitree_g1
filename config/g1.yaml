@@ -186,6 +186,7 @@ audio_prompts:
     action.sm_clap: greeting_clap.wav
     preset.slow: slow.wav
     preset.fast: fast.wav
+    perception.wait: perception_wait.wav
     fault: fault.wav
 
 logging:
@@ -1349,6 +1350,7 @@ rl_policy:
       # Checkpoint: parkour_onboard_preview_stair
       hiking:
         display_name: 感知运控（Hiking）
+        input_recovery: {balance_policy: stand, slow_after_s: 0.5, ramp_s: 1.0, timeout_s: 3.0}
         switch_group: full_body
         policy_switch:
           transition_duration: 0.35
